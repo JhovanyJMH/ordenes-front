@@ -1,0 +1,102 @@
+import { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { createCategoria, clearError } from '../../features/categorias/categoriasSlice';
+import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
+import { FaTag } from 'react-icons/fa';
+
+const CategoriaForm = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { loading } = useSelector((s) => s.categorias);
+
+  const [form, setForm] = useState({ descripcion: '', estatus: '1' });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = { ...form, estatus: form.estatus === '1' ? 1 : 0 };
+      await dispatch(createCategoria(payload)).unwrap();
+      Swal.fire({ title: 'Éxito', text: 'Categoría creada', icon: 'success', timer: 1500, showConfirmButton: false });
+      navigate('/catalogo-categorias');
+    } catch (err) {
+      Swal.fire('Error', err || 'No se pudo crear', 'error');
+      dispatch(clearError());
+    }
+  };
+
+  return (
+    <div className="w-full">
+      <div className="mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Crear Nueva Categoría</h2>
+        <p className="text-gray-600">Complete el formulario para registrar una nueva categoría</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-[#8A2036] to-[#6B1829] px-6 py-4 flex items-center gap-3">
+            <FaTag className="text-white text-xl" />
+            <h3 className="text-lg font-semibold text-white">Información de la Categoría</h3>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <FaTag className="text-gray-400" size={14} />
+                  Descripción <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="descripcion"
+                  value={form.descripcion}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-[#8A2036] focus:ring-[#8A2036]/20 focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder-gray-400"
+                  placeholder="Ingrese la descripción"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="estatus" className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <FaTag className="text-gray-400" size={14} />
+                  Estatus
+                </label>
+                <select
+                  name="estatus"
+                  value={form.estatus}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-[#8A2036] focus:ring-[#8A2036]/20 focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900"
+                >
+                  <option value="1">Activo</option>
+                  <option value="0">Inactivo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4">
+          <button
+            type="button"
+            onClick={() => navigate('/catalogo-categorias')}
+            className="w-full sm:w-auto px-6 py-3 rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all duration-200 font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full sm:w-auto px-8 py-3 rounded-lg bg-gradient-to-r from-[#8A2036] to-[#6B1829] text-white hover:from-[#6B1829] hover:to-[#5A1223] focus:outline-none focus:ring-2 focus:ring-[#8A2036]/30 transition-all duration-200 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default CategoriaForm;
