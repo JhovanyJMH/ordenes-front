@@ -463,25 +463,46 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <ul className="mt-3">
               {/* Generador de Documentos */}
               {user?.profile === '1' && (
-                <li className="px-3 py-2 rounded-sm mb-0.5 last:mb-0">
-                  <NavLink
-                    to="/generador-documentos"
-                    className={({ isActive }) =>
-                      'block transition duration-150 truncate rounded-sm ' + (isActive ? 'bg-white/10 text-white' : 'text-slate-200 hover:text-white hover:bg-white/5')
-                    }
-                  >
-                    <div className="flex items-center">
-                      <svg className="shrink-0 h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="1.5" className="text-slate-600" />
-                        <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400" />
-                        <path d="M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-slate-400" />
-                      </svg>
-                      <span className={`text-sm font-medium ml-3 duration-200 ${sidebarExpanded ? 'opacity-100' : 'opacity-0 hidden'}`}>
-                        Generador Documentos
-                      </span>
-                    </div>
-                  </NavLink>
-                </li>
+                <>
+                  <li className="px-3 py-2 rounded-sm mb-0.5 last:mb-0">
+                    <NavLink
+                      to="/generador-documentos"
+                      className={({ isActive }) =>
+                        'block transition duration-150 truncate rounded-sm ' + (isActive ? 'bg-white/10 text-white' : 'text-slate-200 hover:text-white hover:bg-white/5')
+                      }
+                    >
+                      <div className="flex items-center">
+                        <svg className="shrink-0 h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="1.5" className="text-slate-600" />
+                          <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400" />
+                          <path d="M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-slate-400" />
+                        </svg>
+                        <span className={`text-sm font-medium ml-3 duration-200 ${sidebarExpanded ? 'opacity-100' : 'opacity-0 hidden'}`}>
+                          Generador Documentos
+                        </span>
+                      </div>
+                    </NavLink>
+                  </li>
+
+                  <li className="px-3 py-2 rounded-sm mb-0.5 last:mb-0">
+                    <NavLink
+                      to="/fichas-liberacion"
+                      className={({ isActive }) =>
+                        'block transition duration-150 truncate rounded-sm ' + (isActive ? 'bg-white/10 text-white' : 'text-slate-200 hover:text-white hover:bg-white/5')
+                      }
+                    >
+                      <div className="flex items-center">
+                        <svg className="shrink-0 h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M5 5.5A2.5 2.5 0 017.5 3h9A2.5 2.5 0 0119 5.5v13A2.5 2.5 0 0116.5 21h-9A2.5 2.5 0 015 18.5v-13z" stroke="currentColor" strokeWidth="1.5" className="text-slate-600" />
+                          <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-slate-400" />
+                        </svg>
+                        <span className={`text-sm font-medium ml-3 duration-200 ${sidebarExpanded ? 'opacity-100' : 'opacity-0 hidden'}`}>
+                          Fichas liberación
+                        </span>
+                      </div>
+                    </NavLink>
+                  </li>
+                </>
               )}
 
               {/* Autenticación */}

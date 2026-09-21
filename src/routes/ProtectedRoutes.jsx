@@ -12,6 +12,7 @@ import SolicitudesPage from '../pages/SolicitudesPage';
 import SolicitudesGeneralPage from '../pages/SolicitudesGeneralPage';
 import InformesPage from '../pages/InformesPage';
 import GeneradorDocumentosPage from '../pages/GeneradorDocumentosPage';
+import LiberacionPage from '../pages/LiberacionPage';
 import AdminRoute from '../components/AdminRoute';
 
 const ProtectedRoutes = () => {
@@ -22,6 +23,7 @@ const ProtectedRoutes = () => {
         <Route path="/solicitudes-general" element={<AdminRoute><SolicitudesGeneralPage /></AdminRoute>} />
         <Route path="/informes" element={<AdminRoute><InformesPage /></AdminRoute>} />
         <Route path="/generador-documentos" element={<AdminRoute><GeneradorDocumentosPage /></AdminRoute>} />
+        <Route path="/fichas-liberacion/*" element={<AdminRoute><LiberacionPage /></AdminRoute>} />
         <Route path="/catalogo-usuarios/*" element={<UsersPage />} />
         <Route path="/catalogo-dependencias/*" element={<DependenciasPage />} />
         <Route path="/catalogo-adscripciones/*" element={<AdscripcionesPage />} />
