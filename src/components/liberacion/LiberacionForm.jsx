@@ -6,6 +6,7 @@ import { fetchEmpleados } from '../../features/empleados/empleadosSlice';
 import liberacionService from '../../services/liberacionService';
 import empleadosService from '../../services/empleadosService';
 import usersService from '../../services/usersService';
+import sistemasService from '../../services/sistemasService';
 import { generateLiberacionFichaPdf, buildLiberacionFichaData } from '../../utils/liberacionPdfGenerator';
 import SearchModal from '../common/SearchModal';
 
@@ -14,6 +15,7 @@ const initialForm = {
   fecha_liberacion: new Date().toISOString().slice(0, 10),
   lider_proyecto_id: '',
   lider_proyecto: '',
+  sistema_id: '',
   nombre_sistema: '',
   version: '',
   ambiente: '',
@@ -89,7 +91,6 @@ const userDisplayName = (user) => {
 
 const fieldConfig = [
   { key: 'lider_proyecto', label: 'Líder del proyecto', icon: FiShield, type: 'text', placeholder: 'Nombre del responsable' },
-  { key: 'nombre_sistema', label: 'Nombre del sistema', icon: FiServer, type: 'text', placeholder: 'Ej. SIR, GI etc.' },
   { key: 'version', label: 'Versión', icon: FiLayers, type: 'text', placeholder: 'Ej. 1.0.0' },
 ];
 
@@ -105,6 +106,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
   // Estado para modales de búsqueda de empleados
   const [modals, setModals] = useState({
     lider_proyecto: false,
+    sistema: false,
     responsable_infraestructura: false,
     responsable_desarrollo: false,
   });
@@ -160,6 +162,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
         fecha_liberacion: formatDate(data.fecha_liberacion) || initialForm.fecha_liberacion,
         lider_proyecto_id: data.lider_proyecto_id || '',
         lider_proyecto: liderProyectoValue,
+        sistema_id: data.sistema_id || data.sistema?.id || '',
         responsable_infraestructura: employeeName(data.responsable_infraestructura_data || data.responsable_infraestructura),
         responsable_desarrollo: employeeName(data.responsable_desarrollo_data || data.responsable_desarrollo),
         estatus: Number(data.estatus ?? 1),
@@ -214,6 +217,17 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
       ...prev,
       [fieldId]: value || '',
       [fieldName]: selected ? `${selected.nombre || ''} ${selected.apellidos || ''}`.trim() : '',
+    }));
+  };
+
+  const handleSistemaSelect = (option) => {
+    setFormData((prev) => ({
+      ...prev,
+      sistema_id: option?.value || '',
+      nombre_sistema: option?.nombre || option?.label || '',
+      version: option?.version || '',
+      ambiente: option?.ambiente_despliegue || '',
+      url: option?.url || '',
     }));
   };
 
@@ -342,6 +356,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                           value={formData[key]}
                           onChange={handleChange}
                           placeholder={placeholder}
+                          readOnly={key === 'version' && Boolean(formData.sistema_id)}
                           className={inputClass}
                           style={focusRing}
                         />
@@ -349,6 +364,18 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                     )}
                   </div>
                 ))}
+                <div className="md:col-span-2">
+                  <label className={labelClass}>Sistema del catálogo</label>
+                  <div className="flex gap-2">
+                    <input type="text" value={formData.nombre_sistema} readOnly placeholder="Buscar sistema..." className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-800 shadow-sm" onClick={() => openModal('sistema')} />
+                    <button type="button" onClick={() => openModal('sistema')} className="rounded-lg bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-4 py-3 text-white shadow-md"><FiSearch size={18} /></button>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">La selección precarga la versión, ambiente y URL del catálogo.</p>
+                </div>
+                <div className="md:col-span-2">
+                  <label className={labelClass}>Nombre del sistema</label>
+                  <input type="text" name="nombre_sistema" value={formData.nombre_sistema} onChange={handleChange} placeholder="Nombre del sistema" className={inputClass} style={focusRing} />
+                </div>
               </div>
             </div>
             <div className="grid gap-5 md:grid-cols-3">
@@ -894,7 +921,15 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
         )}
       </div>
 
-      {/* SearchModals para búsqueda de empleados */}
+      {/* SearchModals para búsqueda de responsables y sistemas */}
+      <SearchModal
+        isOpen={modals.sistema}
+        onClose={() => closeModal('sistema')}
+        title="Buscar sistema"
+        searchFunction={sistemasService.filtrado}
+        onSelect={handleSistemaSelect}
+        labelFormatter={(item) => `${item.siglas ? `${item.siglas} - ` : ''}${item.nombre} (${item.version || 'sin versión'})`}
+      />
       <SearchModal
         isOpen={modals.lider_proyecto}
         onClose={() => closeModal('lider_proyecto')}

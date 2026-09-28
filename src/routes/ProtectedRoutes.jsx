@@ -14,6 +14,7 @@ import InformesPage from '../pages/InformesPage';
 import GeneradorDocumentosPage from '../pages/GeneradorDocumentosPage';
 import LiberacionPage from '../pages/LiberacionPage';
 import AdminRoute from '../components/AdminRoute';
+import SistemasPage from '../pages/SistemasPage';
 
 const ProtectedRoutes = () => {
   return (
@@ -31,6 +32,7 @@ const ProtectedRoutes = () => {
         <Route path="/catalogo-categorias/*" element={<CategoriasPage />} />
         <Route path="/catalogo-equipos/*" element={<EquiposPage />} />
         <Route path="/catalogo-refacciones/*" element={<RefaccionesPage />} />
+        <Route path="/catalogo-sistemas/*" element={<AdminRoute><SistemasPage /></AdminRoute>} />
         <Route path="/solicitudes/*" element={<SolicitudesPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>

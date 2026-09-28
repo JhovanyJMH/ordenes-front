@@ -30,6 +30,7 @@ const SearchModal = ({ isOpen, onClose, title, searchFunction, onSelect, labelFi
         const dataKey = Object.keys(response).find(key => key !== 'status');
         const items = response[dataKey] || [];
         setOptions(items.map(item => ({
+          ...item,
           value: item.id,
           label: labelFormatter 
             ? labelFormatter(item) 

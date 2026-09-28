@@ -402,6 +402,18 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
                                 </span>
                               </NavLink>
                             </li>
+                            <li className="mb-1 last:mb-0">
+                              <NavLink
+                                to="/catalogo-sistemas"
+                                className={({ isActive }) =>
+                                  'block transition duration-150 truncate ' + (isActive ? 'text-white' : 'text-slate-200 hover:text-white')
+                                }
+                              >
+                                <span className={`text-sm font-medium duration-200 ${sidebarExpanded ? 'opacity-100' : 'opacity-0 hidden'}`}>
+                                  Sistemas
+                                </span>
+                              </NavLink>
+                            </li>
                             
                            </ul>
                         </div>
