@@ -5,6 +5,12 @@ import Docxtemplater from 'docxtemplater';
 import { saveAs } from 'file-saver';
 import { FiFileText, FiUpload, FiSettings, FiDownload, FiCheckCircle, FiAlertCircle, FiClock, FiServer, FiCalendar, FiGlobe } from 'react-icons/fi';
 
+const STEPS = [
+  { id: 'configuracion', label: 'Configurar', description: 'Indica el sistema, su dirección y la fecha del documento.', icon: FiSettings, color: '#8A2036' },
+  { id: 'csv', label: 'Cargar CSV', description: 'Selecciona el archivo con los datos de las personas usuarias.', icon: FiUpload, color: '#BC955B' },
+  { id: 'generar', label: 'Generar', description: 'Genera y descarga el documento Word personalizado.', icon: FiDownload, color: '#8A2036' },
+];
+
 const GeneradorDocumentosPage = () => {
   const [systemData, setSystemData] = useState({
     sistema: '',
@@ -14,6 +20,13 @@ const GeneradorDocumentosPage = () => {
   const [csvFile, setCsvFile] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const isConfigurationComplete = Boolean(systemData.sistema && systemData.ip);
+  const isReadyToGenerate = isConfigurationComplete && Boolean(csvFile);
+  const currentStep = isReadyToGenerate ? 2 : isConfigurationComplete ? 1 : 0;
+
+  const scrollToStep = (stepId) => {
+    document.getElementById(`generador-${stepId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -181,13 +194,13 @@ const GeneradorDocumentosPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-[#f4f7fa] p-6">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <FiFileText className="text-4xl text-blue-600 mr-3" />
-            <h1 className="text-3xl font-bold text-gray-800">
+            <FiFileText className="text-4xl text-colorPrimario mr-3" />
+            <h1 className="text-3xl font-bold text-colorPrimario">
               Generador de Documentos de Clave de Acceso
             </h1>
           </div>
@@ -197,35 +210,74 @@ const GeneradorDocumentosPage = () => {
         </div>
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${systemData.sistema && systemData.ip ? 'bg-green-500' : 'bg-blue-500'}`}>
-                {systemData.sistema && systemData.ip ? <FiCheckCircle className="text-white text-sm" /> : <span className="text-white text-sm font-bold">1</span>}
-              </div>
-              <span className="ml-2 text-sm text-gray-600">Configurar</span>
+        <div className="mb-8">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="h-1 flex-1 rounded-full bg-gradient-to-r from-[#8A2036] to-[#BC955B]" />
+            <span className="text-center text-xs font-semibold uppercase tracking-widest text-gray-400">Generación de documentos</span>
+            <div className="h-1 flex-1 rounded-full bg-gradient-to-r from-[#BC955B] to-[#8A2036]" />
+          </div>
+          <div className="mb-5 flex items-end justify-between gap-3">
+            <p className="text-sm text-gray-500">Sigue los pasos para preparar el documento.</p>
+            <p className="shrink-0 text-sm font-semibold text-gray-500">
+              <span className="text-lg text-colorPrimario">{String(currentStep + 1).padStart(2, '0')}</span>
+              <span className="mx-1">/</span>{String(STEPS.length).padStart(2, '0')} pasos
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {STEPS.map((step, index) => {
+              const isActive = index === currentStep;
+              const isCompleted = index === 0
+                ? isConfigurationComplete
+                : index === 1 && isConfigurationComplete && Boolean(csvFile);
+              const StepIcon = step.icon;
+
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => scrollToStep(step.id)}
+                  aria-current={isActive ? 'step' : undefined}
+                  aria-label={`Paso ${index + 1}: ${step.label}`}
+                  className={`flex min-h-[76px] min-w-0 items-center gap-3 rounded-xl border bg-white px-4 py-3 text-left transition-all sm:min-h-[84px] sm:flex-col sm:justify-center sm:gap-2 sm:text-center ${
+                    isActive
+                      ? 'shadow-md ring-2 ring-[#8A2036]/15'
+                      : isCompleted
+                        ? 'border-emerald-200 hover:border-emerald-300'
+                        : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  style={isActive ? { borderColor: step.color } : undefined}
+                >
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                      isActive ? 'text-white' : isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                    }`}
+                    style={isActive ? { backgroundColor: step.color } : undefined}
+                  >
+                    {isCompleted ? <FiCheckCircle size={18} /> : <StepIcon size={17} />}
+                  </span>
+                  <span className={`min-w-0 text-xs font-semibold leading-tight ${isActive ? 'text-gray-900' : isCompleted ? 'text-emerald-700' : 'text-gray-500'}`}>
+                    {step.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-4 flex items-start gap-4 rounded-xl border-l-4 bg-white/80 p-5 shadow-sm" style={{ borderColor: STEPS[currentStep].color }}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100" style={{ color: STEPS[currentStep].color }}>
+              {React.createElement(STEPS[currentStep].icon, { size: 20 })}
             </div>
-            <div className="w-12 h-0.5 bg-gray-300"></div>
-            <div className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${csvFile ? 'bg-green-500' : 'bg-blue-500'}`}>
-                {csvFile ? <FiCheckCircle className="text-white text-sm" /> : <span className="text-white text-sm font-bold">2</span>}
-              </div>
-              <span className="ml-2 text-sm text-gray-600">Cargar CSV</span>
-            </div>
-            <div className="w-12 h-0.5 bg-gray-300"></div>
-            <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                <span className="text-white text-sm font-bold">3</span>
-              </div>
-              <span className="ml-2 text-sm text-gray-600">Generar</span>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Paso {currentStep + 1} de {STEPS.length}</p>
+              <h2 className="mt-1 text-base font-bold text-gray-800">{STEPS[currentStep].label}</h2>
+              <p className="mt-1 text-sm text-gray-600">{STEPS[currentStep].description}</p>
             </div>
           </div>
         </div>
 
         {/* System Configuration Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-blue-500">
+        <div id="generador-configuracion" className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-colorPrimario">
           <div className="flex items-center mb-4">
-            <FiSettings className="text-2xl text-blue-600 mr-3" />
+            <FiSettings className="text-2xl text-colorPrimario mr-3" />
             <h2 className="text-xl font-semibold text-gray-800">
               Configuración del Sistema
             </h2>
@@ -234,7 +286,7 @@ const GeneradorDocumentosPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                <FiServer className="mr-2 text-blue-500" />
+                <FiServer className="mr-2 text-colorPrimario" />
                 Sistema
               </label>
               <input
@@ -242,7 +294,7 @@ const GeneradorDocumentosPage = () => {
                 name="sistema"
                 value={systemData.sistema}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-colorPrimario focus:border-transparent transition-all"
                 placeholder="Nombre del sistema"
               />
               {systemData.sistema && (
@@ -252,7 +304,7 @@ const GeneradorDocumentosPage = () => {
 
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                <FiGlobe className="mr-2 text-blue-500" />
+                <FiGlobe className="mr-2 text-colorPrimario" />
                 Dirección o URL
               </label>
               <input
@@ -260,7 +312,7 @@ const GeneradorDocumentosPage = () => {
                 name="ip"
                 value={systemData.ip}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-colorPrimario focus:border-transparent transition-all"
                 placeholder="https://..."
               />
               {systemData.ip && (
@@ -270,7 +322,7 @@ const GeneradorDocumentosPage = () => {
 
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                <FiCalendar className="mr-2 text-blue-500" />
+                <FiCalendar className="mr-2 text-colorPrimario" />
                 Fecha
               </label>
               <input
@@ -278,7 +330,7 @@ const GeneradorDocumentosPage = () => {
                 name="fecha"
                 value={systemData.fecha}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-colorPrimario focus:border-transparent transition-all"
               />
               <FiClock className="absolute right-3 top-9 text-gray-400" />
             </div>
@@ -286,9 +338,9 @@ const GeneradorDocumentosPage = () => {
         </div>
 
         {/* CSV Upload Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-indigo-500">
+        <div id="generador-csv" className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-colorSecundario">
           <div className="flex items-center mb-4">
-            <FiUpload className="text-2xl text-indigo-600 mr-3" />
+            <FiUpload className="text-2xl text-colorSecundario mr-3" />
             <h2 className="text-xl font-semibold text-gray-800">
               Cargar Archivo CSV
             </h2>
@@ -318,7 +370,7 @@ const GeneradorDocumentosPage = () => {
           ) : (
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
-                dragActive ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-indigo-400'
+                dragActive ? 'border-colorPrimario bg-[#fff7f7]' : 'border-gray-300 hover:border-[#8A2036]'
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -343,7 +395,7 @@ const GeneradorDocumentosPage = () => {
                 <p className="text-sm text-gray-500 mb-4">
                   o haz clic para seleccionar
                 </p>
-                <span className="inline-block px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium">
+                <span className="inline-block px-4 py-2 bg-[#fdf2f3] text-colorPrimario rounded-lg text-sm font-medium">
                   Seleccionar archivo CSV
                 </span>
               </label>
@@ -352,15 +404,15 @@ const GeneradorDocumentosPage = () => {
         </div>
 
         {/* CSV Format Info Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-purple-500">
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-4 border-[#BC955B]">
           <div className="flex items-center mb-4">
-            <FiFileText className="text-2xl text-purple-600 mr-3" />
+            <FiFileText className="text-2xl text-[#BC955B] mr-3" />
             <h2 className="text-xl font-semibold text-gray-800">
               Formato del CSV
             </h2>
           </div>
           
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 border border-purple-200">
+          <div className="bg-gradient-to-r from-[#fff7f7] to-[#f9f3eb] rounded-lg p-4 border border-[#e7d7b4]">
             <pre className="text-sm text-gray-700 overflow-x-auto font-mono">
 {`primer_apellido,segundo_apellido,nombres,usuario,contraseña
 Garcia,Lopez,Juan,juan.garcia,pass123
@@ -397,14 +449,14 @@ Rodriguez,Martinez,Maria,maria.rodriguez,pass456`}
         </div>
 
         {/* Generate Button */}
-        <div className="flex justify-center">
+        <div id="generador-generar" className="flex justify-center">
           <button
             onClick={handleGenerate}
             disabled={generating || !systemData.sistema || !systemData.ip || !csvFile}
             className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 flex items-center ${
               generating || !systemData.sistema || !systemData.ip || !csvFile
                 ? 'bg-gray-400 cursor-not-allowed opacity-50'
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl'
+                : 'bg-gradient-to-r from-[#8A2036] to-[#BC955B] hover:from-[#6e1729] hover:to-[#a8854d] text-white shadow-lg hover:shadow-xl'
             }`}
           >
             {generating ? (

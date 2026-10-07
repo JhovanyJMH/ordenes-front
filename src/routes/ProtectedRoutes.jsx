@@ -13,6 +13,7 @@ import SolicitudesGeneralPage from '../pages/SolicitudesGeneralPage';
 import InformesPage from '../pages/InformesPage';
 import GeneradorDocumentosPage from '../pages/GeneradorDocumentosPage';
 import LiberacionPage from '../pages/LiberacionPage';
+import ControlCambioPage from '../pages/ControlCambioPage';
 import AdminRoute from '../components/AdminRoute';
 import SistemasPage from '../pages/SistemasPage';
 
@@ -25,6 +26,7 @@ const ProtectedRoutes = () => {
         <Route path="/informes" element={<AdminRoute><InformesPage /></AdminRoute>} />
         <Route path="/generador-documentos" element={<AdminRoute><GeneradorDocumentosPage /></AdminRoute>} />
         <Route path="/fichas-liberacion/*" element={<AdminRoute><LiberacionPage /></AdminRoute>} />
+        <Route path="/control-cambios/*" element={<AdminRoute><ControlCambioPage /></AdminRoute>} />
         <Route path="/catalogo-usuarios/*" element={<UsersPage />} />
         <Route path="/catalogo-dependencias/*" element={<DependenciasPage />} />
         <Route path="/catalogo-adscripciones/*" element={<AdscripcionesPage />} />

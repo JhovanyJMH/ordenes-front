@@ -4,7 +4,6 @@ import LogoDGDITI from '../images/recurso5.png';
 import LogoFooter from '../images/recurso4.png';
 
 const pad = (value) => (value === null || value === undefined ? '' : String(value).trim());
-const isChecked = (value) => value === true || value === 1 || value === '1' || value === 'true';
 const fmtDate = (value) => {
   if (!value) return '';
   const str = String(value).trim();
@@ -14,7 +13,14 @@ const fmtDate = (value) => {
 };
 
 export const buildLiberacionFichaData = (data = {}) => {
-  if (data && typeof data === 'object' && data.general && data.red) {
+  if (
+    data
+    && typeof data === 'object'
+    && data.general
+    && Array.isArray(data.entregables)
+    && data.validacion
+    && data.responsables
+  ) {
     return data;
   }
 
@@ -34,11 +40,10 @@ export const buildLiberacionFichaData = (data = {}) => {
 
   const firstValue = (...values) => values.find((value) => value !== null && value !== undefined && value !== '') ?? '';
 
-  const ambiente =
-    firstValue(source.ambiente, source.ambienteSeleccionado) ||
-    (source.ambiente_desarrollo ? 'Desarrollo' : '') ||
-    (source.ambiente_pruebas ? 'Pruebas' : '') ||
-    (source.ambiente_produccion ? 'Producción' : '');
+  const ambientes = [
+    source.ambiente_pruebas ? 'Pruebas' : '',
+    source.ambiente_produccion ? 'Producción' : '',
+  ].filter(Boolean);
 
   const tipoLiberacion =
     firstValue(source.tipo_liberacion, source.tipoLiberacion) ||
@@ -52,20 +57,9 @@ export const buildLiberacionFichaData = (data = {}) => {
     (source.prioridad_media ? 'Media' : '') ||
     (source.prioridad_baja ? 'Baja' : '');
 
-  const impacto =
-    firstValue(source.impacto) ||
-    (source.impacto_critico ? 'Crítico' : '') ||
-    (source.impacto_moderado ? 'Moderado' : '') ||
-    (source.impacto_bajo ? 'Bajo' : '');
-
-  const resultadoLiberacion =
-    firstValue(source.resultado_liberacion, source.resultadoLiberacion) ||
-    (source.liberacion_exitosa ? 'Liberación Exitosa' : '') ||
-    (source.liberacion_parcial ? 'Liberación Parcial' : '') ||
-    (source.liberacion_rechazada ? 'Liberación Rechazada' : '');
-
   return {
     general: {
+      numeroControl: pad(firstValue(source.numero_control, source.numeroControl)),
       fechaSolicitud: fmtDate(firstValue(source.fecha_solicitud, source.fechaSolicitud)),
       fechaLiberacion: fmtDate(firstValue(source.fecha_liberacion, source.fechaLiberacion)),
       liderProyecto: empleadoNombre(firstValue(
@@ -76,67 +70,55 @@ export const buildLiberacionFichaData = (data = {}) => {
       )),
       nombreSistema: pad(firstValue(source.nombre_sistema, source.nombreSistema)),
       version: pad(firstValue(source.version)),
-      ambiente,
+      ambientes,
       tipoLiberacion,
       prioridad,
-      impacto,
     },
-    red: {
-      url: pad(firstValue(source.url, source.f_ruta, source.frontendRuta)),
-      puerto: pad(firstValue(source.puerto_utilizado, source.puertoUtilizado)),
-      ipFront: pad(firstValue(source.ip_frontend, source.ipFrontend, source.f_ruta_entregado, source.frontendRutaEntregado, source.f_ruta)),
-      ipBack: pad(firstValue(source.ip_backend, source.ipBackend, source.b_ruta_entregado, source.backendRutaEntregado, source.b_ruta)),
-      ipBd: pad(firstValue(source.ip_bd, source.ipBd, source.bd_ruta_entregado, source.baseDatosRutaEntregado, source.bd_ruta)),
-    },
-    rutas: {
-      frontend: pad(firstValue(source.f_ruta, source.frontendRuta, source.red?.url)),
-      frontendEntregado: pad(firstValue(source.f_ruta_entregado, source.frontendRutaEntregado)),
-      backend: pad(firstValue(source.b_ruta, source.backendRuta, source.ip_backend, source.ipBackend)),
-      backendEntregado: pad(firstValue(source.b_ruta_entregado, source.backendRutaEntregado, source.ip_backend, source.ipBackend)),
-      bd: pad(firstValue(source.bd_ruta, source.baseDatosRuta, source.ip_bd, source.ipBd)),
-      bdEntregado: pad(firstValue(source.bd_ruta_entregado, source.baseDatosRutaEntregado, source.ip_bd, source.ipBd)),
-      vars: pad(firstValue(source.var_entorno, source.varEntorno, source.observaciones)),
-      varsEntregado: pad(firstValue(source.var_entorno_entregado, source.varEntornoEntregado, source.observaciones_finales)),
-    },
-    entregables: {
-      frontend: Boolean(source.entregable_frontend ?? !!(source.f_ruta || source.f_ruta_entregado)),
-      backend: Boolean(source.entregable_backend ?? !!(source.b_ruta || source.b_ruta_entregado)),
-      bd: Boolean(source.entregable_bd ?? !!(source.bd_ruta || source.bd_ruta_entregado)),
-      variables: Boolean(source.entregable_variables ?? !!(source.var_entorno_entregado)),
-    },
-    configuracion: {
-      servidor: Boolean(source.configuracion_servidor),
-      bd: Boolean(source.configuracion_bd),
-      desarrollo: Boolean(source.configuracion_desarrollo),
-      asignacionIp: Boolean(source.asignacion_ip),
-      publicacionSistema: Boolean(source.publicacion_sistema),
-      validacionOperativa: Boolean(source.validacion_operativa),
-      respaldoPrevio: Boolean(source.respaldo_previo),
-    },
+    entregables: [
+      {
+        nombre: 'Frontend',
+        incluye: 'Archivos compilados / proyecto frontend',
+        ruta: pad(source.f_ruta),
+        estado: pad(source.entregable_frontend_estado),
+      },
+      {
+        nombre: 'Backend',
+        incluye: 'API / servicios / lógica de negocio',
+        ruta: pad(source.b_ruta),
+        estado: pad(source.entregable_backend_estado),
+      },
+      {
+        nombre: 'Base de Datos',
+        incluye: 'Scripts SQL / migraciones',
+        ruta: pad(source.bd_ruta),
+        estado: pad(source.entregable_bd_estado),
+      },
+      {
+        nombre: 'Variables de entorno',
+        incluye: 'Variables .env o plantilla de variables necesarias para la operación del sistema.',
+        ruta: pad(source.var_entorno),
+        estado: pad(source.entregable_variables_estado),
+      },
+    ],
     validacion: {
-      tiempo: pad(source.tiempo_validacion || source.tiempoValidacion || ''),
-      resultado: resultadoLiberacion,
-      observaciones: pad(source.observaciones_finales || source.observaciones || ''),
-      frontendResponsable: pad(source.validacion_frontend_responsable || ''),
-      frontendResultado: pad(source.validacion_frontend_resultado || ''),
-      backendResponsable: pad(source.validacion_backend_responsable || ''),
-      backendResultado: pad(source.validacion_backend_resultado || ''),
-      migracionesResponsable: pad(source.validacion_migraciones_responsable || ''),
-      migracionesResultado: pad(source.validacion_migraciones_resultado || ''),
-      pruebasResponsable: pad(source.validacion_pruebas_responsable || ''),
-      pruebasResultado: pad(source.validacion_pruebas_resultado || ''),
-      accesoResponsable: pad(source.validacion_acceso_responsable || ''),
-      accesoResultado: pad(source.validacion_acceso_resultado || ''),
-      publicacionResponsable: pad(source.validacion_publicacion_responsable || ''),
-      publicacionResultado: pad(source.validacion_publicacion_resultado || ''),
+      pruebasResponsable: 'Desarrollo',
+      pruebasResultado: pad(source.validacion_pruebas_resultado),
+      usuarioResponsable: 'Área usuaria',
+      usuarioResultado: pad(source.validacion_acceso_resultado),
+      observaciones: pad(source.observaciones_finales),
     },
     responsables: {
-      infraestructura: empleadoNombre(source.responsable_infraestructura || source.responsableInfraestructura),
-      desarrollo: empleadoNombre(source.responsable_desarrollo || source.responsableDesarrollo),
-      firmaInfraestructura: empleadoNombre(source.responsable_infraestructura || source.responsableInfraestructura),
-      firmaDesarrollo: empleadoNombre(source.responsable_desarrollo || source.responsableDesarrollo),
+      firmaInfraestructura: pad(firstValue(empleadoNombre(source.responsable_infraestructura || source.responsableInfraestructura), 'Ing. Javier Beltrán Salgado')),
+      firmaDesarrollo: pad(firstValue(empleadoNombre(source.responsable_desarrollo || source.responsableDesarrollo), 'Ing. Julieta Díaz Vega')),
+      cargoInfraestructura: pad(firstValue(
+        source.cargo_infraestructura,
+        'Subdirector de Operaciones, Seguridad y Proyectos Tecnológicos',
+      )),
+      cargoDesarrollo: pad(firstValue(
+        source.cargo_desarrollo,
+        'Subdirectora de Desarrollo de Software y Bases de Datos',
+      )),
     },
-    resultadoLiberacion,
   };
 };
 
@@ -244,22 +226,23 @@ const textRow = (doc, y, label, value, labelWidth = 42) => {
   drawRow(doc, y, [{ w: labelWidth, text: label, bold: true }, { w: W - labelWidth, text: value }]);
 };
 
-const checkColumnRow = (doc, y, label, checked, labelWidth = 136) => {
-  drawRow(doc, y, [{ w: labelWidth, text: label }, { w: 25, text: '' }, { w: W - labelWidth - 25, text: '' }]);
-  checkbox(doc, M + labelWidth + 10.5, y + 2.2, checked);
-  checkbox(doc, M + labelWidth + 25 + 10.5, y + 2.2, !checked);
+const checkboxOptionRow = (doc, y, label, options, selectedOptions, labelWidth = 42) => {
+  drawRow(doc, y, [{ w: labelWidth, text: label, bold: true }], ROW);
+  const optionWidth = (W - labelWidth) / options.length;
+  options.forEach((option, index) => {
+    const x = M + labelWidth + optionWidth * index;
+    doc.rect(x, y, optionWidth, ROW, 'S');
+    doc.setFont('arial', 'normal');
+    doc.setFontSize(10);
+    doc.text(option, x + optionWidth - 16, y + 5.5, { align: 'right' });
+    checkbox(doc, x + optionWidth - 12, y + 2.2, selectedOptions.includes(option));
+  });
 };
 
 export const generateLiberacionFichaPdf = (fichaData, fileName = 'ficha-liberacion.pdf') => {
   const ficha = buildLiberacionFichaData(fichaData);
   const doc = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' });
   const selected = (value, expected) => String(value || '').toLowerCase() === expected.toLowerCase();
-  const resultChecked = (value, type) => {
-    const normalized = String(value || '').toLowerCase();
-    return type === 'ok'
-      ? normalized.includes('correcto') || normalized.includes('ok') || normalized === 'si'
-      : normalized.includes('error') || normalized === 'no';
-  };
   const burgundyRow = (y, columns, h = ROW) => {
     let x = M;
     doc.setTextColor(255, 255, 255);
@@ -281,114 +264,131 @@ export const generateLiberacionFichaPdf = (fichaData, fileName = 'ficha-liberaci
     let y = 40;
     doc.setFont('arial', 'bold');
     doc.setFontSize(14);
-    doc.text('Formato de Liberación', M + W / 2, y + 5, { align: 'center' });
-    y += 10;
+    doc.text('Formato de Solicitud de Liberación', M + W / 2, y + 5, { align: 'center' });
+    y += 9;
     y = titleBlock(doc, y, 'Identificación de la Liberación');
+    textRow(doc, y, 'Número de control', ficha.general.numeroControl, 42); y += ROW;
     drawRow(doc, y, [
-      { w: 41, text: 'Fecha de Solicitud', bold: true }, { w: 52, text: ficha.general.fechaSolicitud },
-      { w: 41, text: 'Fecha de Liberación', bold: true }, { w: 52, text: ficha.general.fechaLiberacion },
+      { w: 42, text: 'Fecha de Solicitud', bold: true }, { w: 51, text: ficha.general.fechaSolicitud },
+      { w: 42, text: 'Fecha de Liberación', bold: true }, { w: 51, text: ficha.general.fechaLiberacion },
     ]);
     y += ROW;
     textRow(doc, y, 'Líder del proyecto', ficha.general.liderProyecto); y += ROW;
     textRow(doc, y, 'Nombre del sistema', ficha.general.nombreSistema); y += ROW;
     textRow(doc, y, 'Versión', ficha.general.version); y += ROW;
-    optionRow(doc, y, 'Ambiente', ['Desarrollo', 'Pruebas', 'Producción'], ficha.general.ambiente); y += ROW;
+    checkboxOptionRow(doc, y, 'Ambiente', ['Pruebas', 'Producción'], ficha.general.ambientes); y += ROW;
     optionRow(doc, y, 'Tipo de Liberación', ['Nueva versión', 'Corrección', 'Mejora'], ficha.general.tipoLiberacion); y += ROW;
-    optionRow(doc, y, 'Prioridad', ['Alta', 'Media', 'Baja'], ficha.general.prioridad); y += ROW;
-    optionRow(doc, y, 'Impacto', ['Crítico', 'Moderado', 'Bajo'], ficha.general.impacto); y += ROW + 5;
+    optionRow(doc, y, 'Prioridad', ['Alta', 'Media', 'Baja'], ficha.general.prioridad); y += ROW + 4;
 
+    const deliveryNote = 'El Área de Desarrollo hace entrega de los componentes descritos en el presente documento para su implementación en el ambiente correspondiente. La validación, configuración, respaldo, publicación y operación en servidores institucionales será responsabilidad de la Subdirección de Operaciones, Seguridad y Proyectos Tecnológicos conforme a sus procedimientos.';
     doc.setFont('arial', 'normal');
-    doc.setFontSize(11);
-    doc.text('Información Técnica', M, y + 4); y += 7;
-    burgundyRow(y, [{ w: 42, text: '' }, { w: 144, text: 'Información' }]); y += ROW;
-    textRow(doc, y, 'URL', ficha.red.url); y += ROW;
-    textRow(doc, y, 'Puerto utilizado', ficha.red.puerto); y += ROW;
-    textRow(doc, y, 'IP Backend', ficha.red.ipBack); y += ROW;
-    textRow(doc, y, 'IP Frontend', ficha.red.ipFront); y += ROW;
-    textRow(doc, y, 'IP DB', ficha.red.ipBd); y += ROW + 5;
+    doc.setFontSize(8.5);
+    const noteLines = doc.splitTextToSize(deliveryNote, W);
+    doc.text(noteLines, M, y + 3.5, { align: 'justify', maxWidth: W });
+    y += noteLines.length * 3.5 + 4;
 
-    doc.setFont('arial', 'normal');
-    doc.setFontSize(11);
-    const infoText = 'El Área de Desarrollo hace entrega de los componentes necesarios para la liberación del sistema al Área de Infraestructura, quien será responsable de la configuración, publicación y validación operativa en los servidores institucionales.';
-    doc.text(doc.splitTextToSize(infoText, W), M, y + 4, { align: 'justify', maxWidth: W });
-    y += 16;
-
-    burgundyRow(y, [{ w: 42, text: 'Entregable' }, { w: 84, text: 'Incluye' }, { w: 30, text: 'Completa' }, { w: 30, text: 'Parcial' }]); y += ROW;
-    const deliverables = [
-      ['Frontend', ficha.rutas.frontend || 'Archivos compilados / proyecto frontend', ficha.entregables.frontend],
-      ['Backend', ficha.rutas.backend || 'API / servicios / lógica de negocio', ficha.entregables.backend],
-      ['Base de Datos', ficha.rutas.bd || 'Scripts SQL / migraciones', ficha.entregables.bd],
-      ['Variables de entorno', ficha.rutas.vars || 'Variables .env y configuraciones necesarias', ficha.entregables.variables],
-    ];
-    deliverables.forEach(([label, include, checked]) => {
-      const complete = isChecked(checked);
-      drawRow(doc, y, [{ w: 42, text: label }, { w: 84, text: include }, { w: 30, text: '' }, { w: 30, text: '' }]);
-      checkbox(doc, M + 42 + 84 + 13, y + 2.2, complete);
-      checkbox(doc, M + 42 + 84 + 30 + 13, y + 2.2, !complete);
-      y += ROW;
+    burgundyRow(y, [
+      { w: 29, text: 'Entregable' },
+      { w: 62, text: 'Incluye' },
+      { w: 58, text: 'Ruta/Archivo' },
+      { w: 18.5, text: 'Aplica' },
+      { w: 18.5, text: 'No aplica' },
+    ], 9);
+    y += 9;
+    ficha.entregables.forEach((item) => {
+      const rowHeight = item.nombre === 'Variables de entorno' ? 15 : 11;
+      drawRow(doc, y, [
+        { w: 29, text: item.nombre, size: 9 },
+        { w: 62, text: item.incluye, size: 9 },
+        { w: 58, text: item.ruta, size: 9 },
+        { w: 18.5, text: '' },
+        { w: 18.5, text: '' },
+      ], rowHeight);
+      checkbox(doc, M + 29 + 62 + 58 + 7.5, y + (rowHeight - 3.5) / 2, selected(item.estado, 'aplica'));
+      checkbox(doc, M + 29 + 62 + 58 + 18.5 + 7.5, y + (rowHeight - 3.5) / 2, selected(item.estado, 'no_aplica'));
+      y += rowHeight;
     });
-    y += 5;
-    doc.setFontSize(11);
-    doc.text('Configuración de Infraestructura', M, y + 4); y += 7;
-    burgundyRow(y, [{ w: 136, text: 'Actividad' }, { w: 25, text: 'Sí' }, { w: 25, text: 'No' }]); y += ROW;
-    checkColumnRow(doc, y, 'Configuración del servidor (Apache, PHP, permisos)', ficha.configuracion.servidor); y += ROW;
-    checkColumnRow(doc, y, 'Configuración de Base de Datos', ficha.configuracion.bd);
   };
 
   const drawPageTwo = () => {
     doc.addPage();
     header(doc);
     let y = 40;
-    checkColumnRow(doc, y, 'Asignación de IP', ficha.configuracion.asignacionIp); y += ROW;
-    checkColumnRow(doc, y, 'Publicación del sistema', ficha.configuracion.publicacionSistema); y += ROW;
-    checkColumnRow(doc, y, 'Validación operativa posterior a la liberación', ficha.configuracion.validacionOperativa); y += ROW;
-    checkColumnRow(doc, y, 'Respaldo previo realizado y validado', ficha.configuracion.respaldoPrevio); y += ROW + 7;
-
+    const validationNote = 'El Área de Desarrollo hace entrega de los componentes necesarios para la liberación del sistema a la Subdirección de Operaciones, Seguridad y Proyectos Tecnológicos, quien será responsable de la configuración, publicación y validación operativa en los servidores institucionales.';
     doc.setFont('arial', 'normal');
-    doc.setFontSize(11);
-    doc.text('Validaciones previas', M, y + 4); y += 7;
-    burgundyRow(y, [{ w: 63, text: 'Validación' }, { w: 63, text: 'Responsable' }, { w: 30, text: 'Correcto' }, { w: 30, text: 'Error' }]); y += ROW;
-    const validations = [
-      ['Compilación Frontend', ficha.validacion.frontendResponsable, ficha.validacion.frontendResultado],
-      ['Validación Backend', ficha.validacion.backendResponsable, ficha.validacion.backendResultado],
-      ['Ejecución de migraciones', ficha.validacion.migracionesResponsable, ficha.validacion.migracionesResultado],
-      ['Pruebas funcionales', ficha.validacion.pruebasResponsable, ficha.validacion.pruebasResultado],
-      ['Validación de acceso', ficha.validacion.accesoResponsable, ficha.validacion.accesoResultado],
-      ['Validación de publicación en el entorno de ambiente', ficha.validacion.publicacionResponsable, ficha.validacion.publicacionResultado],
-    ];
-    validations.forEach(([label, responsible, result], index) => {
-      const h = index === validations.length - 1 ? 12 : ROW;
-      drawRow(doc, y, [{ w: 63, text: label }, { w: 63, text: responsible }, { w: 30, text: '' }, { w: 30, text: '' }], h);
-      checkbox(doc, M + 63 + 63 + 13, y + (h - 3.5) / 2, resultChecked(result, 'ok'));
-      checkbox(doc, M + 63 + 63 + 30 + 13, y + (h - 3.5) / 2, resultChecked(result, 'error'));
-      y += h;
-    });
-    y += 7;
-    y = titleBlock(doc, y, 'Resultados de la liberación');
-    drawRow(doc, y, [{ w: 62, text: 'Liberación Exitosa' }, { w: 62, text: 'Liberación Parcial' }, { w: 62, text: 'Liberación Rechazada' }], 10);
-    checkbox(doc, M + 57, y + 3.2, selected(ficha.resultadoLiberacion, 'Liberación Exitosa'));
-    checkbox(doc, M + 119, y + 3.2, selected(ficha.resultadoLiberacion, 'Liberación Parcial'));
-    checkbox(doc, M + 181, y + 3.2, selected(ficha.resultadoLiberacion, 'Liberación Rechazada'));
-    y += 17;
-    y = titleBlock(doc, y, 'Observaciones');
-    drawRow(doc, y, [{ w: W, text: pad(ficha.validacion.observaciones) || 'Sin observaciones' }], 30);
-    y += 38;
-    doc.setFont('arial', 'normal');
-    doc.setFontSize(11);
-    doc.text(doc.splitTextToSize('La firma del presente documento valida la entrega de componentes por parte del Área de Desarrollo y la publicación/configuración realizada por el Área de Infraestructura.', W), M, y, { align: 'justify', maxWidth: W });
-    y += 12;
-    doc.setFontSize(11);
-    doc.text('Nombre y Firma', 55, y, { align: 'center' });
-    doc.text('Nombre y Firma', 155, y, { align: 'center' });
-    doc.text(ficha.responsables.firmaInfraestructura || ' ', 55, y + 7, { align: 'center' });
-    doc.text(ficha.responsables.firmaDesarrollo || ' ', 155, y + 7, { align: 'center' });
-    doc.line(M + 10, y + 11, M + 80, y + 11);
-    doc.line(M + 110, y + 11, M + W, y + 11);
-    doc.text('Responsable de Infraestructura', 55, y + 19, { align: 'center' });
-    doc.text('Responsable de Desarrollo', 155, y + 19, { align: 'center' });
     doc.setFontSize(9);
-    doc.text('Subdirector de Operaciones, Seguridad y Proyectos Tecnológicos', 55, y + 25, { align: 'center', maxWidth: 70 });
-    doc.text('Subdirectora de Desarrollo de Software y Bases de Datos', 155, y + 25, { align: 'center', maxWidth: 70 });
+    const noteLines = doc.splitTextToSize(validationNote, W);
+    doc.text(noteLines, M, y + 3.5, { align: 'justify', maxWidth: W });
+    y += noteLines.length * 3.8 + 5;
+
+    y = titleBlock(doc, y, 'Validación');
+    const validationColumns = [
+      { w: 59, text: 'Validación' },
+      { w: 39, text: 'Responsable' },
+      { w: 29.33, text: 'Correcto' },
+      { w: 29.33, text: 'Error' },
+      { w: 29.34, text: 'No aplica' },
+    ];
+    burgundyRow(y, validationColumns, 9);
+    y += 9;
+    [
+      ['Pruebas funcionales', ficha.validacion.pruebasResponsable, ficha.validacion.pruebasResultado],
+      ['Validación funcional del usuario solicitante', ficha.validacion.usuarioResponsable, ficha.validacion.usuarioResultado],
+    ].forEach(([label, responsible, result]) => {
+      const rowHeight = 18;
+      drawRow(doc, y, [
+        { w: 59, text: label, size: 9 },
+        { w: 39, text: responsible, size: 9 },
+        { w: 29.33, text: '' },
+        { w: 29.33, text: '' },
+        { w: 29.34, text: '' },
+      ], rowHeight);
+      const checkboxY = y + (rowHeight - 3.5) / 2;
+      checkbox(doc, M + 59 + 39 + (29.33 - 3.5) / 2, checkboxY, selected(result, 'Correcto'));
+      checkbox(doc, M + 59 + 39 + 29.33 + (29.33 - 3.5) / 2, checkboxY, selected(result, 'Error'));
+      checkbox(doc, M + 59 + 39 + 29.33 * 2 + (29.34 - 3.5) / 2, checkboxY, selected(result, 'No aplica'));
+      y += rowHeight;
+    });
+
+    y = titleBlock(doc, y, 'Observaciones');
+    drawRow(doc, y, [{ w: W, text: pad(ficha.validacion.observaciones) }], 35);
+    y += 42;
+    doc.setFont('arial', 'normal');
+    doc.setFontSize(9);
+    const signatureNote = 'La firma del presente documento valida la entrega de componentes por parte del Área de Desarrollo y la Subdirección de Operaciones, Seguridad y Proyectos Tecnológicos.';
+    const signatureLines = doc.splitTextToSize(signatureNote, W);
+    doc.text(signatureLines, M, y + 3.5, { align: 'justify', maxWidth: W });
+    y += signatureLines.length * 3.8 + 8;
+
+    const leftCenter = M + 47;
+    const rightCenter = M + 139;
+    const leftName = ficha.responsables.firmaInfraestructura || '';
+    const rightName = ficha.responsables.firmaDesarrollo || '';
+    const signatureWidth = 76;
+    doc.setFontSize(10);
+    doc.text('Nombre y Firma', leftCenter, y, { align: 'center' });
+    doc.text('Nombre y Firma', rightCenter, y, { align: 'center' });
+    doc.setFont('arial', 'normal');
+    [[leftName, leftCenter], [rightName, rightCenter]].forEach(([name, center]) => {
+      doc.setFontSize(10);
+      const textWidth = doc.getTextWidth(name);
+      if (textWidth > signatureWidth) {
+        doc.setFontSize(10 * signatureWidth / textWidth);
+      } else {
+        doc.setFontSize(10);
+      }
+      doc.text(name, center, y + 15, { align: 'center' });
+    });
+    doc.line(M + 8, y + 16, M + 86, y + 16);
+    doc.line(M + 100, y + 16, M + W - 8, y + 16);
+    doc.setFont('arial', 'bold');
+    doc.setFontSize(8.5);
+    doc.text('Responsable de Recepción y Publicación', leftCenter, y + 22, { align: 'center', maxWidth: 78 });
+    doc.text('Responsable de Entrega Técnica', rightCenter, y + 22, { align: 'center', maxWidth: 78 });
+    doc.setFont('arial', 'normal');
+    doc.setFontSize(8);
+    doc.text(ficha.responsables.cargoInfraestructura, leftCenter, y + 27, { align: 'center', maxWidth: 78 });
+    doc.text(ficha.responsables.cargoDesarrollo, rightCenter, y + 27, { align: 'center', maxWidth: 78 });
   };
 
   drawPageOne();

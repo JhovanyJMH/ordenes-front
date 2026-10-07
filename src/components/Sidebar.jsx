@@ -514,6 +514,26 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
                       </div>
                     </NavLink>
                   </li>
+
+                  <li className="px-3 py-2 rounded-sm mb-0.5 last:mb-0">
+                    <NavLink
+                      to="/control-cambios"
+                      className={({ isActive }) =>
+                        'block transition duration-150 truncate rounded-sm ' + (isActive ? 'bg-white/10 text-white' : 'text-slate-200 hover:text-white hover:bg-white/5')
+                      }
+                    >
+                      <div className="flex items-center">
+                        <svg className="shrink-0 h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-slate-400" />
+                          <rect x="4.5" y="3.5" width="15" height="17" rx="2" stroke="currentColor" strokeWidth="1.5" className="text-slate-600" />
+                          <path d="M15 3.5v3h4" stroke="currentColor" strokeWidth="1.5" className="text-slate-400" />
+                        </svg>
+                        <span className={`text-sm font-medium ml-3 duration-200 ${sidebarExpanded ? 'opacity-100' : 'opacity-0 hidden'}`}>
+                          Control de cambios
+                        </span>
+                      </div>
+                    </NavLink>
+                  </li>
                 </>
               )}
 
