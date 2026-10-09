@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { FiDownload, FiSearch, FiPlus } from 'react-icons/fi';
-import controlCambioService from '../../services/controlCambioService';
+import { FiDownload, FiSearch, FiPlus, FiEdit, FiLock, FiUnlock, FiFile } from 'react-icons/fi';
+import controlCambioService, { getDocumentoFilename } from '../../services/controlCambioService';
 import { buildControlCambioData, generateControlCambioPdf } from '../../utils/controlCambioPdfGenerator';
 
 const fmtDate = (value) => {
   if (!value) return '—';
-  return String(value).slice(0, 10);
+  const str = String(value).slice(0, 10);
+  if (!str || str === '—') return '—';
+  const parts = str.split('-');
+  if (parts.length !== 3) return '—';
+  const [year, month, day] = parts;
+  return `${day}/${month}/${year}`;
 };
 
 const personName = (value) => {
@@ -52,6 +57,25 @@ const ControlCambioList = () => {
     const ficha = buildControlCambioData(item);
     const fileName = `${(item.numero_control || item.nombre_sistema || 'control-cambios').replace(/\s+/g, '-').toLowerCase()}.pdf`;
     generateControlCambioPdf(ficha, fileName);
+  };
+
+  const handleDownloadDocumento = async (item) => {
+    try {
+      const file = await controlCambioService.downloadDocumento(item.id);
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = getDocumentoFilename(item.numero_control || `control-cambios-${item.id}`);
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo descargar el PDF adjunto.',
+      });
+    }
   };
 
   const handleToggleStatus = async (item) => {
@@ -130,11 +154,11 @@ const ControlCambioList = () => {
               <tr>
                 <th className="px-3 py-3">ID</th>
                 <th className="px-3 py-3">No. control</th>
-                <th className="px-3 py-3">Sistema</th>
+                {/* <th className="px-3 py-3">Sistema</th> */}
                 <th className="px-3 py-3">Tipo</th>
-                <th className="px-3 py-3">Prioridad</th>
+                {/* <th className="px-3 py-3">Prioridad</th> */}
                 <th className="px-3 py-3">Fecha solicitud</th>
-                <th className="px-3 py-3">Solicitante</th>
+                {/* <th className="px-3 py-3">Solicitante</th> */}
                 <th className="px-3 py-3">Estatus</th>
                 <th className="px-3 py-3 text-center">Acción</th>
               </tr>
@@ -149,11 +173,11 @@ const ControlCambioList = () => {
                   <tr key={item.id} className="border-b border-gray-200 odd:bg-white even:bg-gray-50">
                     <td className="px-3 py-3 font-semibold">#{item.id}</td>
                     <td className="px-3 py-3">{item.numero_control || '—'}</td>
-                    <td className="px-3 py-3">{item.nombre_sistema || '—'}</td>
+                    {/* <td className="px-3 py-3">{item.nombre_sistema || '—'}</td> */}
                     <td className="px-3 py-3">{item.tipo_cambio || '—'}</td>
-                    <td className="px-3 py-3">{item.prioridad || '—'}</td>
+                    {/* <td className="px-3 py-3">{item.prioridad || '—'}</td> */}
                     <td className="px-3 py-3">{fmtDate(item.fecha_solicitud)}</td>
-                    <td className="px-3 py-3">{personName(item.solicitante_nombre || item.solicitante)}</td>
+                    {/* <td className="px-3 py-3">{personName(item.solicitante_nombre || item.solicitante)}</td> */}
                     <td className="px-3 py-3">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${Number(item.estatus) === 1 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200' : 'bg-stone-100 text-stone-700 ring-1 ring-inset ring-stone-200'}`}>
                         {Number(item.estatus) === 1 ? 'ABIERTO' : 'CERRADO'}
@@ -163,24 +187,49 @@ const ControlCambioList = () => {
                       <div className="flex flex-wrap justify-center gap-2">
                         <Link
                           to={`/control-cambios/editar/${item.id}`}
-                          className="rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] px-2.5 py-1.5 text-[11px] font-bold text-[#8A2036] hover:bg-[#8A2036] hover:text-white"
+                          className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-blue-600/30 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white"
+                          title="Editar registro"
                         >
-                          Editar
+                          <FiEdit size={16} />
+                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                            Editar
+                          </span>
                         </Link>
-                        <button
+                        {/* <button
                           type="button"
                           onClick={() => handleToggleStatus(item)}
-                          className="rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] px-2.5 py-1.5 text-[11px] font-bold text-[#8A2036] hover:bg-[#8A2036] hover:text-white"
+                          className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-amber-600/30 bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white"
+                          title={Number(item.estatus) === 1 ? 'Cerrar registro' : 'Abrir registro'}
                         >
-                          {Number(item.estatus) === 1 ? 'Cerrar' : 'Abrir'}
-                        </button>
+                          {Number(item.estatus) === 1 ? <FiLock size={16} /> : <FiUnlock size={16} />}
+                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                            {Number(item.estatus) === 1 ? 'Cerrar' : 'Abrir'}
+                          </span>
+                        </button> */}
                         <button
                           type="button"
                           onClick={() => handleDownload(item)}
-                          className="inline-flex items-center gap-2 rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] px-2.5 py-1.5 text-[11px] font-bold text-[#8A2036] hover:bg-[#8A2036] hover:text-white"
+                          className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] text-[#8A2036] hover:bg-[#8A2036] hover:text-white"
+                          title="Descargar PDF de control"
                         >
-                          <FiDownload size={12} /> PDF
+                          <FiDownload size={16} />
+                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                            PDF
+                          </span>
                         </button>
+                        {item.tiene_documento_pdf && (
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadDocumento(item)}
+                            className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-700/30 bg-emerald-50 text-emerald-800 hover:bg-emerald-700 hover:text-white"
+                            title="Descargar documento adjunto"
+                          >
+                            <FiFile size={16} />
+                            <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                              Adjunto
+                            </span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

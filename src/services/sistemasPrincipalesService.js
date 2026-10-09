@@ -3,8 +3,8 @@ import api from './api';
 const ROUTE = '/sistema-principal';
 
 const sistemasPrincipalesService = {
-  getSistemasPrincipales: async (search = '') => {
-    const response = await api.get(ROUTE, { params: search ? { search } : {} });
+  getSistemasPrincipales: async ({ page = 1, per_page = 50, search = '' } = {}) => {
+    const response = await api.get(ROUTE, { params: { page, per_page, search } });
     return response.data;
   },
   getSistemaPrincipalById: async (id) => {

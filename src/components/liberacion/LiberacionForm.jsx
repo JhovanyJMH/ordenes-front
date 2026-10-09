@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { FiDownload, FiLayers, FiShield, FiCheckCircle, FiClipboard, FiActivity, FiSearch, FiArrowLeft, FiArrowRight } from 'react-icons/fi';
-import liberacionService from '../../services/liberacionService';
+import jsPDF from 'jspdf';
+import { FiDownload, FiLayers, FiShield, FiCheckCircle, FiClipboard, FiActivity, FiSearch, FiArrowLeft, FiArrowRight, FiEye, FiLock, FiUnlock } from 'react-icons/fi';
+import liberacionService, { getDocumentoFilename } from '../../services/liberacionService';
 import empleadosService from '../../services/empleadosService';
 import usersService from '../../services/usersService';
 import sistemasService from '../../services/sistemasService';
-import { generateLiberacionFichaPdf, buildLiberacionFichaData } from '../../utils/liberacionPdfGenerator';
 import SearchModal from '../common/SearchModal';
 
 const initialForm = {
@@ -52,6 +53,43 @@ const STEPS = [
 const inputClass = 'w-full rounded-lg border border-gray-300 bg-white/95 px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#8A2036] focus:outline-none focus:ring-2 focus:ring-[#8A2036]/20 transition-all shadow-sm';
 const labelClass = 'block text-sm font-semibold text-gray-800 mb-2 tracking-tight';
 
+const preparePdfDocument = async (file) => {
+  if (!file) return null;
+  if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) return file;
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    throw new Error('Selecciona un PDF o una imagen JPEG, PNG o WEBP para convertirla a PDF.');
+  }
+
+  const imageData = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('No se pudo leer la imagen seleccionada.'));
+    reader.readAsDataURL(file);
+  });
+  const image = await new Promise((resolve, reject) => {
+    const element = new Image();
+    element.onload = () => resolve(element);
+    element.onerror = () => reject(new Error('La imagen seleccionada no es válida.'));
+    element.src = imageData;
+  });
+
+  const pdf = new jsPDF({
+    orientation: image.width > image.height ? 'landscape' : 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const scale = Math.min(pageWidth / image.width, pageHeight / image.height);
+  const width = image.width * scale;
+  const height = image.height * scale;
+  const format = file.type === 'image/png' ? 'PNG' : file.type === 'image/webp' ? 'WEBP' : 'JPEG';
+  pdf.addImage(imageData, format, (pageWidth - width) / 2, (pageHeight - height) / 2, width, height);
+
+  const baseName = file.name.replace(/\.[^.]+$/, '') || 'documento';
+  return new File([pdf.output('blob')], `${baseName}.pdf`, { type: 'application/pdf' });
+};
+
 const userDisplayName = (user) => {
   if (!user) return '';
   if (typeof user === 'string') return user.trim();
@@ -64,11 +102,19 @@ const fieldConfig = [
 ];
 
 const LiberacionForm = ({ mode = 'create', editId = null }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState(initialForm);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
+  const recordIdRef = useRef(mode === 'edit' ? editId : null);
   const [currentStep, setCurrentStep] = useState(0);
-  const [toast, setToast] = useState(null);
   const containerRef = useRef(null);
+  const documentoPdfInputRef = useRef(null);
+  const documentoImagenInputRef = useRef(null);
+  const [documentoPdf, setDocumentoPdf] = useState(null);
+  const [documentoPreview, setDocumentoPreview] = useState(null);
+  const [loadingDocumentoPreview, setLoadingDocumentoPreview] = useState(false);
 
   // Estado para modales de búsqueda de empleados
   const [modals, setModals] = useState({
@@ -88,10 +134,55 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
     containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [currentStep]);
 
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    window.setTimeout(() => setToast(null), 2800);
-  };
+  useEffect(() => {
+    let objectUrl;
+    let cancelled = false;
+
+    const setPreviewFromBlob = (blob) => {
+      objectUrl = URL.createObjectURL(blob);
+      setDocumentoPreview({
+        url: objectUrl,
+        type: blob.type.startsWith('image/') ? blob.type : 'application/pdf',
+      });
+    };
+
+    if (documentoPdf) {
+      setPreviewFromBlob(documentoPdf);
+      return () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      };
+    }
+
+    setDocumentoPreview(null);
+    if (mode !== 'edit' || !editId || !formData.tiene_documento_pdf) {
+      setLoadingDocumentoPreview(false);
+      return undefined;
+    }
+
+    setLoadingDocumentoPreview(true);
+    liberacionService.downloadDocumento(editId)
+      .then((blob) => {
+        if (!cancelled) setPreviewFromBlob(blob);
+      })
+      .catch((error) => {
+        console.error(error);
+        if (!cancelled) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo cargar la vista previa del documento PDF.',
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDocumentoPreview(false);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [documentoPdf, editId, formData.tiene_documento_pdf, mode]);
 
   const loadLiberacion = async (id) => {
     try {
@@ -159,7 +250,71 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
     );
   }, [formData]);
 
-  const goToStep = (idx) => setCurrentStep(idx);
+  const saveProgress = async () => {
+    if (submitLockRef.current) return false;
+    if (!canGenerate) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Completa los datos de identificación',
+        text: 'Antes de continuar, captura las fechas, el líder, el sistema, la versión, el tipo, la prioridad y al menos un ambiente.',
+      });
+      return false;
+    }
+
+    submitLockRef.current = true;
+    setSubmitting(true);
+    try {
+      const payload = {
+        ...formData,
+        estatus: Number(formData.estatus ?? 1),
+      };
+      const documento = await preparePdfDocument(documentoPdf);
+      const multipartPayload = new FormData();
+      Object.entries(payload).forEach(([key, value]) => {
+        multipartPayload.append(key, value === true ? '1' : value === false ? '0' : value ?? '');
+      });
+      if (documento) multipartPayload.append('documento_pdf', documento);
+
+      let response;
+      if (recordIdRef.current) {
+        response = await liberacionService.updateLiberacion(recordIdRef.current, multipartPayload);
+      } else {
+        response = await liberacionService.createLiberacion(multipartPayload);
+        const savedId = response?.data?.id || response?.id;
+        if (!savedId) throw new Error('La ficha se guardó, pero no se recibió su identificador.');
+        recordIdRef.current = savedId;
+      }
+
+      const savedRecord = response?.data || response;
+      setFormData((current) => ({
+        ...current,
+        numero_control: savedRecord?.numero_control || current.numero_control,
+        tiene_documento_pdf: savedRecord?.tiene_documento_pdf ?? (documento ? true : current.tiene_documento_pdf),
+      }));
+      if (documento) {
+        setDocumentoPdf(null);
+        if (documentoPdfInputRef.current) documentoPdfInputRef.current.value = '';
+        if (documentoImagenInputRef.current) documentoImagenInputRef.current.value = '';
+      }
+      return true;
+    } catch (error) {
+      console.error(error);
+      await Swal.fire({
+        icon: 'error',
+        title: 'No se pudo guardar el paso',
+        text: error?.response?.data?.message || error.message || 'No se pudo guardar el progreso de la ficha.',
+      });
+      return false;
+    } finally {
+      submitLockRef.current = false;
+      setSubmitting(false);
+    }
+  };
+
+  const goToStep = async (idx) => {
+    if (idx === currentStep || submitting) return;
+    if (await saveProgress()) setCurrentStep(idx);
+  };
   const step = STEPS[currentStep];
   const focusRing = { '--tw-ring-color': step.color };
 
@@ -215,37 +370,15 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
       return;
     }
 
-    try {
-      const payload = {
-        ...formData,
-        estatus: Number(formData.estatus ?? 1),
-      };
-
-      let response;
-      if (mode === 'edit' && editId) {
-        response = await liberacionService.updateLiberacion(editId, payload);
-      } else {
-        response = await liberacionService.createLiberacion(payload);
-      }
-
-      const data = response?.data && response.data.data ? response.data.data : response?.data || response || payload;
-      const ficha = buildLiberacionFichaData(data);
-      const fileName = `${(formData.nombre_sistema || 'sistema').replace(/\s+/g, '-').toLowerCase()}-ficha-liberacion.pdf`;
-      generateLiberacionFichaPdf(ficha, fileName);
-
-      showToast(mode === 'edit' ? 'Ficha actualizada y descargada' : 'Ficha generada y descargada');
-
-      if (mode === 'create') {
-        setFormData(initialForm);
-        setCurrentStep(0);
-      }
-    } catch (error) {
-      console.error(error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error?.response?.data?.message || 'No se pudo guardar la ficha de liberación.',
+    if (await saveProgress()) {
+      await Swal.fire({
+        icon: 'success',
+        title: mode === 'edit' || editId ? 'Ficha actualizada' : 'Ficha guardada',
+        text: 'La ficha se guardó correctamente.',
+        timer: 1400,
+        showConfirmButton: false,
       });
+      navigate('/fichas-liberacion');
     }
   };
 
@@ -524,6 +657,98 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                 <p className="mt-1 text-sm text-gray-600">Revisa el resumen y genera la ficha de liberación en PDF.</p>
               </div>
             </div>
+            {mode === 'edit' && (
+              <>
+                <div className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
+                  <p className={labelClass}>Estado de la ficha</p>
+                  <p className="mb-3 text-sm text-gray-600">Elige si la ficha quedará abierta o cerrada al guardar.</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {[
+                      { value: 1, label: 'Abierta', description: 'La ficha podrá seguir actualizándose.', selected: 'border-emerald-600 bg-emerald-50 text-emerald-800' },
+                      { value: 0, label: 'Cerrada', description: 'La ficha quedará marcada como cerrada.', selected: 'border-stone-500 bg-stone-100 text-stone-800' },
+                    ].map(({ value, label, description, selected }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={Number(formData.estatus) === value}
+                        onClick={() => setFormData((prev) => ({ ...prev, estatus: value }))}
+                        className={`flex items-center gap-3 rounded-xl border-2 p-4 text-left transition ${
+                          Number(formData.estatus) === value
+                            ? selected
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        {value === 1 ? <FiUnlock size={20} /> : <FiLock size={20} />}
+                        <span>
+                          <span className="block font-bold">{label}</span>
+                          <span className="mt-1 block text-xs">{description}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
+                  <p className={labelClass}>Documento de respaldo (opcional)</p>
+                  <p className="mb-3 text-sm text-gray-600">
+                    Visualiza el documento guardado o elige un PDF para sustituirlo. También puedes capturar una imagen; se convertirá a PDF al guardar.
+                    {formData.tiene_documento_pdf && !documentoPdf && ' El archivo actual se conservará si no lo reemplazas.'}
+                  </p>
+                  {loadingDocumentoPreview && (
+                    <div className="mb-4 flex h-20 items-center justify-center text-sm text-gray-500">Cargando vista previa...</div>
+                  )}
+                  {documentoPreview && (
+                    <div className="mb-4 overflow-hidden rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700">
+                        <FiEye size={16} />
+                        Vista previa {documentoPdf ? 'del archivo seleccionado' : 'del documento guardado'}
+                        {(!documentoPdf || documentoPdf.type === 'application/pdf' || /\.pdf$/i.test(documentoPdf.name)) && (
+                          <a
+                            href={documentoPreview.url}
+                            download={getDocumentoFilename(formData.numero_control || `liberacion-${editId}`, formData.version)}
+                            className="ml-auto inline-flex items-center gap-1 rounded-lg border border-[#8A2036]/30 bg-white px-3 py-1.5 text-xs font-bold text-[#8A2036] hover:bg-[#8A2036] hover:text-white"
+                          >
+                            <FiDownload size={14} /> Descargar adjunto
+                          </a>
+                        )}
+                      </div>
+                      {documentoPreview.type.startsWith('image/') ? (
+                        <img src={documentoPreview.url} alt="Vista previa del documento escaneado" className="mx-auto max-h-[600px] w-full object-contain bg-gray-100" />
+                      ) : (
+                        <iframe
+                          title="Vista previa del documento PDF"
+                          src={documentoPreview.url}
+                          className="h-[600px] w-full"
+                        />
+                      )}
+                    </div>
+                  )}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Cargar PDF
+                      <input
+                        ref={documentoPdfInputRef}
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        onChange={(event) => setDocumentoPdf(event.target.files?.[0] || null)}
+                        className={`${inputClass} mt-2`}
+                      />
+                    </label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Escanear con cámara
+                      <input
+                        ref={documentoImagenInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        capture="environment"
+                        onChange={(event) => setDocumentoPdf(event.target.files?.[0] || null)}
+                        className={`${inputClass} mt-2`}
+                      />
+                    </label>
+                  </div>
+                  {documentoPdf && <p className="mt-2 text-sm text-gray-700">Seleccionado: {documentoPdf.name}</p>}
+                </div>
+              </>
+            )}
             <div className="overflow-hidden rounded-xl border border-gray-200/60 bg-white/95 shadow-lg backdrop-blur-sm">
               <div className="border-b border-gray-200/60 px-5 py-4">
                 <p className="text-sm font-bold uppercase tracking-wide text-gray-700">Resumen de la ficha</p>
@@ -577,16 +802,6 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
 
   return (
     <div ref={containerRef} className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      {toast && (
-        <div
-          className={`fixed right-6 top-6 z-50 animate-[fadeIn_0.2s_ease-out] rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg ${
-            toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
-
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="h-1 flex-1 bg-gradient-to-r from-[#8A2036] to-[#BC955B] rounded-full" />
@@ -621,6 +836,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                 key={s.id}
                 type="button"
                 onClick={() => goToStep(idx)}
+                disabled={submitting}
                 aria-current={isActive ? 'step' : undefined}
                 aria-label={`Paso ${idx + 1}: ${s.label}`}
                 className={`flex min-h-[76px] min-w-0 items-center gap-2 rounded-xl border bg-white px-3 py-3 text-left transition-all sm:min-h-[84px] sm:flex-col sm:justify-center sm:gap-2 sm:text-center ${
@@ -666,8 +882,8 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
       <div className="mt-8 flex items-center justify-between gap-4">
         <button
           type="button"
-          onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-          disabled={currentStep === 0}
+          onClick={() => goToStep(currentStep - 1)}
+          disabled={currentStep === 0 || submitting}
           className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:border-[#8A2036] hover:text-[#8A2036] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-gray-200 disabled:hover:text-gray-600"
         >
           <FiArrowLeft />
@@ -678,21 +894,22 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!canGenerate}
+            disabled={!canGenerate || submitting}
             className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-md transition-all ${
-              canGenerate ? 'bg-gradient-to-r from-[#8A2036] to-[#a9354c] hover:-translate-y-0.5 hover:shadow-lg' : 'cursor-not-allowed bg-gray-300'
+              canGenerate && !submitting ? 'bg-gradient-to-r from-[#8A2036] to-[#a9354c] hover:-translate-y-0.5 hover:shadow-lg' : 'cursor-not-allowed bg-gray-300'
             }`}
           >
-            <FiDownload />
-            {mode === 'edit' ? 'Actualizar y generar PDF' : 'Guardar y generar PDF'}
+            <FiDownload className={submitting ? 'animate-pulse' : ''} />
+            {submitting ? 'Enviando...' : mode === 'edit' ? 'Actualizar ficha' : 'Guardar ficha'}
           </button>
         ) : (
           <button
             type="button"
-            onClick={() => setCurrentStep((s) => Math.min(STEPS.length - 1, s + 1))}
+            onClick={() => goToStep(currentStep + 1)}
+            disabled={submitting}
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
           >
-            Siguiente
+            {submitting ? 'Guardando...' : 'Siguiente'}
             <FiArrowRight />
           </button>
         )}

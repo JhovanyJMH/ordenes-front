@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { FiDownload, FiSearch, FiPlus } from 'react-icons/fi';
-import liberacionService from '../../services/liberacionService';
+import { FiDownload, FiSearch, FiPlus, FiEdit, FiLock, FiUnlock, FiFile } from 'react-icons/fi';
+import liberacionService, { getDocumentoFilename } from '../../services/liberacionService';
 import { buildLiberacionFichaData, generateLiberacionFichaPdf } from '../../utils/liberacionPdfGenerator';
 
 const fmtDate = (value) => {
   if (!value) return '—';
-  const d = String(value).slice(0, 10);
-  return d;
+  const str = String(value).slice(0, 10);
+  if (!str || str === '—') return '—';
+  const parts = str.split('-');
+  if (parts.length !== 3) return '—';
+  const [year, month, day] = parts;
+  return `${day}/${month}/${year}`;
 };
 
 const employeeName = (emp) => {
@@ -59,6 +63,25 @@ const LiberacionList = () => {
     const ficha = buildLiberacionFichaData(item);
     const fileName = `${(item.nombre_sistema || 'sistema').replace(/\s+/g, '-').toLowerCase()}-ficha-liberacion.pdf`;
     generateLiberacionFichaPdf(ficha, fileName);
+  };
+
+  const handleDownloadDocumento = async (item) => {
+    try {
+      const file = await liberacionService.downloadDocumento(item.id);
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = getDocumentoFilename(item.numero_control || `liberacion-${item.id}`, item.version);
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo descargar el documento PDF adjunto.',
+      });
+    }
   };
 
   const handleToggleStatus = async (item) => {
@@ -137,13 +160,15 @@ const LiberacionList = () => {
             <thead className="bg-gradient-to-r from-[#8A2036] to-[#a9354c] text-white">
               <tr>
                 <th className="px-3 py-3">ID</th>
-                <th className="px-3 py-3">Sistema</th>
-                <th className="px-3 py-3">Líder</th>
+
+                <th className="px-3 py-3">No control</th>
+                {/* <th className="px-3 py-3">Sistema</th> */}
+                {/* <th className="px-3 py-3">Líder</th> */}
                 <th className="px-3 py-3">Tipo</th>
                 <th className="px-3 py-3">Fecha liberación</th>
                 <th className="px-3 py-3">Estatus</th>
-                <th className="px-3 py-3">Infraestructura</th>
-                <th className="px-3 py-3">Desarrollo</th>
+                {/* <th className="px-3 py-3">Infraestructura</th>
+                <th className="px-3 py-3">Desarrollo</th> */}
                 <th className="px-3 py-3 text-center">Acción</th>
               </tr>
             </thead>
@@ -156,8 +181,9 @@ const LiberacionList = () => {
                 filtered.map((item) => (
                   <tr key={item.id} className="border-b border-gray-200 odd:bg-white even:bg-gray-50">
                     <td className="px-3 py-3 font-semibold">#{item.id}</td>
-                    <td className="px-3 py-3">{item.nombre_sistema || '—'}</td>
-                    <td className="px-3 py-3">{userName(item.lider_proyecto_data || item.lider_proyecto)}</td>
+                    <td className="px-3 py-3">{item.numero_control || '—'}</td>
+                    {/* <td className="px-3 py-3">{item.nombre_sistema || '—'}</td> */}
+                    {/* <td className="px-3 py-3">{userName(item.lider_proyecto_data || item.lider_proyecto)}</td> */}
                     <td className="px-3 py-3">{item.tipo_liberacion || '—'}</td>
                     <td className="px-3 py-3">{fmtDate(item.fecha_liberacion)}</td>
                     <td className="px-3 py-3">
@@ -165,30 +191,55 @@ const LiberacionList = () => {
                         {Number(item.estatus) === 1 ? 'ABIERTA' : 'CERRADA'}
                       </span>
                     </td>
-                    <td className="px-3 py-3">{employeeName(item.responsable_infraestructura_data || item.responsable_infraestructura)}</td>
-                    <td className="px-3 py-3">{employeeName(item.responsable_desarrollo_data || item.responsable_desarrollo)}</td>
+                    {/* <td className="px-3 py-3">{employeeName(item.responsable_infraestructura_data || item.responsable_infraestructura)}</td>
+                    <td className="px-3 py-3">{employeeName(item.responsable_desarrollo_data || item.responsable_desarrollo)}</td> */}
                     <td className="px-3 py-3 text-center">
                       <div className="flex flex-wrap justify-center gap-2">
                         <Link
                           to={`/fichas-liberacion/editar/${item.id}`}
-                          className="rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] px-2.5 py-1.5 text-[11px] font-bold text-[#8A2036] hover:bg-[#8A2036] hover:text-white"
+                          className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-blue-600/30 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white"
+                          title="Editar ficha"
                         >
-                          Editar
+                          <FiEdit size={16} />
+                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                            Editar
+                          </span>
                         </Link>
-                        <button
+                        {/* <button
                           type="button"
                           onClick={() => handleToggleStatus(item)}
-                          className="rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] px-2.5 py-1.5 text-[11px] font-bold text-[#8A2036] hover:bg-[#8A2036] hover:text-white"
+                          className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-amber-600/30 bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white"
+                          title={Number(item.estatus) === 1 ? 'Cerrar ficha' : 'Abrir ficha'}
                         >
-                          {Number(item.estatus) === 1 ? 'Cerrar' : 'Abrir'}
-                        </button>
+                          {Number(item.estatus) === 1 ? <FiLock size={16} /> : <FiUnlock size={16} />}
+                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                            {Number(item.estatus) === 1 ? 'Cerrar' : 'Abrir'}
+                          </span>
+                        </button> */}
                         <button
                           type="button"
                           onClick={() => handleDownload(item)}
-                          className="inline-flex items-center gap-2 rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] px-2.5 py-1.5 text-[11px] font-bold text-[#8A2036] hover:bg-[#8A2036] hover:text-white"
+                          className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] text-[#8A2036] hover:bg-[#8A2036] hover:text-white"
+                          title="Descargar PDF de ficha"
                         >
-                          <FiDownload size={12} /> PDF
+                          <FiDownload size={16} />
+                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                            PDF Ficha
+                          </span>
                         </button>
+                        {item.tiene_documento_pdf && (
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadDocumento(item)}
+                            className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-700/30 bg-emerald-50 text-emerald-800 hover:bg-emerald-700 hover:text-white"
+                            title="Descargar documento adjunto"
+                          >
+                            <FiFile size={16} />
+                            <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                              Adjunto
+                            </span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

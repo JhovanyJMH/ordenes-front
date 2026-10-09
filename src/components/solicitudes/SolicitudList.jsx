@@ -9,6 +9,16 @@ import Swal from 'sweetalert2';
 import solicitudesService from '../../services/solicitudesService';
 import { downloadSolicitudPdf } from '../../utils/solicitudPdfGenerator';
 
+const fmtDate = (value) => {
+  if (!value) return '—';
+  const str = String(value).slice(0, 10);
+  if (!str || str === '—') return '—';
+  const parts = str.split('-');
+  if (parts.length !== 3) return '—';
+  const [year, month, day] = parts;
+  return `${day}/${month}/${year}`;
+};
+
 const SolicitudList = () => {
   const dispatch = useDispatch();
   const { list, loading, pagination } = useSelector((s) => s.solicitudes);
@@ -166,7 +176,7 @@ const SolicitudList = () => {
                 <td className="whitespace-nowrap px-3 py-3 font-bold text-[#2e1f22] sm:px-4">{sol.id}</td>
                 <td className="whitespace-nowrap px-3 py-3 text-gray-700 sm:px-4">{sol.adscripcion?.descripcion || sol.adscripcion_descripcion || '-'}</td>
                 <td className="whitespace-nowrap px-3 py-3 text-gray-700 sm:px-4">{sol.servicio?.descripcion || sol.servicio_descripcion || '-'}</td>
-                <td className="whitespace-nowrap px-3 py-3 text-gray-600 sm:px-4">{sol.fecha}</td>
+                <td className="whitespace-nowrap px-3 py-3 text-gray-600 sm:px-4">{fmtDate(sol.fecha)}</td>
                 <td className="whitespace-nowrap px-3 py-3 sm:px-4">
                   <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold ${Number(sol.estatus) === 1 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200' : 'bg-stone-100 text-stone-700 ring-1 ring-inset ring-stone-200'}`}>
                     {Number(sol.estatus) === 1 ? 'ABIERTA' : 'CERRADA'}

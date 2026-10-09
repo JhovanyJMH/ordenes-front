@@ -39,6 +39,85 @@ const fields = [
   ['ultima_actualizacion', 'Última actualización'],
 ];
 
+const PaginationControls = ({ pagination, currentPage, perPage, pageSizes, itemLabel, loading, onPageChange, onPerPageChange }) => {
+  if (!pagination) return null;
+
+  const pagesToShow = typeof window !== 'undefined' && window.innerWidth < 640 ? 5 : 10;
+  let startPage = Math.max(1, currentPage - Math.floor(pagesToShow / 2));
+  let endPage = Math.min(pagination.last_page, startPage + pagesToShow - 1);
+
+  if (endPage - startPage + 1 < pagesToShow) {
+    startPage = Math.max(1, endPage - pagesToShow + 1);
+  }
+
+  const pages = [];
+  if (startPage > 1) {
+    pages.push(1);
+    if (startPage > 2) pages.push('...');
+  }
+  for (let number = startPage; number <= endPage; number += 1) {
+    pages.push(number);
+  }
+  if (endPage < pagination.last_page) {
+    if (endPage < pagination.last_page - 1) pages.push('...');
+    pages.push(pagination.last_page);
+  }
+
+  return (
+    <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="text-sm text-gray-600 text-center sm:text-left">
+        Mostrando <span className="font-medium">{pagination.from || 0}</span> a <span className="font-medium">{pagination.to || 0}</span> de <span className="font-medium">{pagination.total || 0}</span> {itemLabel}
+      </div>
+      <div className="flex flex-col items-center gap-3 sm:flex-row">
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          Por página
+          <select
+            value={perPage}
+            onChange={(event) => onPerPageChange(Number(event.target.value))}
+            className="rounded-lg border border-gray-300 bg-white px-2 py-1.5"
+          >
+            {pageSizes.map((size) => <option key={size} value={size}>{size}</option>)}
+          </select>
+        </label>
+        <div className="flex flex-wrap justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1 || loading}
+            className="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            Anterior
+          </button>
+          {pages.map((number, index) => (
+            <button
+              key={`${number}-${index}`}
+              type="button"
+              onClick={() => typeof number === 'number' && onPageChange(number)}
+              disabled={typeof number !== 'number' || currentPage === number || loading}
+              className={`px-2 sm:px-3 py-1 rounded-md text-sm ${typeof number === 'number'
+                ? (currentPage === number
+                  ? 'bg-colorPrimario text-white'
+                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50')
+                : 'bg-white border border-gray-300 text-gray-700 opacity-50 cursor-default'
+              }`}
+            >
+              {number}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === pagination.last_page || loading}
+            className="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SistemaForm = () => {
   const { id, sistemaPrincipalId } = useParams();
   const navigate = useNavigate();
@@ -296,8 +375,23 @@ const SistemaPrincipalForm = () => {
 
 const SistemasList = () => {
   const [sistemasPrincipales, setSistemasPrincipales] = useState([]);
+  const [pagination, setPagination] = useState(null);
   const [search, setSearch] = useState('');
-  const load = useCallback(() => sistemasPrincipalesService.getSistemasPrincipales(search).then(setSistemasPrincipales), [search]);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(50);
+  const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await sistemasPrincipalesService.getSistemasPrincipales({ page, per_page: perPage, search });
+      setSistemasPrincipales(response.data);
+      setPagination(response);
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: 'No se pudo cargar el catálogo', text: error.response?.data?.message || 'Intenta nuevamente.' });
+    } finally {
+      setLoading(false);
+    }
+  }, [page, perPage, search]);
   useEffect(() => { load(); }, [load]);
 
   const deactivate = async (id) => {
@@ -305,7 +399,7 @@ const SistemasList = () => {
     if (result.isConfirmed) {
       try {
         await sistemasPrincipalesService.deleteSistemaPrincipal(id);
-        load();
+        await load();
       } catch (error) {
         Swal.fire({ icon: 'error', title: 'No se pudo eliminar', text: error.response?.data?.message || 'El sistema principal tiene registros relacionados.' });
       }
@@ -314,13 +408,15 @@ const SistemasList = () => {
 
   return <>
     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="relative flex-1"><FiSearch className="absolute left-3 top-3 text-gray-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar sistema principal" className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3" /></div>
+      <div className="relative flex-1"><FiSearch className="absolute left-3 top-3 text-gray-400" /><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Buscar sistema principal" className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3" /></div>
       <Link to="registrar" className="inline-flex items-center justify-center gap-2 rounded-lg bg-colorPrimario px-4 py-2.5 font-semibold text-white"><FiPlus /> Nuevo sistema principal</Link>
     </div>
     <div className="overflow-x-auto rounded-lg border border-gray-200">
       <table className="min-w-full text-left text-sm">
         <thead className="bg-colorPrimario text-white"><tr><th className="px-4 py-3">ID</th><th className="px-4 py-3">Sistema principal</th><th className="px-4 py-3">Sistemas / versiones</th><th className="px-4 py-3">Estatus</th><th className="px-4 py-3">Acciones</th></tr></thead>
-        <tbody>{sistemasPrincipales.map((principal) => (
+        <tbody>{loading ? (
+          <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Cargando sistemas principales...</td></tr>
+        ) : sistemasPrincipales.map((principal) => (
           <tr key={principal.id} className="border-t hover:bg-gray-50">
             <td className="px-4 py-3">{principal.id}</td>
             <td className="px-4 py-3 font-semibold">{principal.descripcion}</td>
@@ -332,9 +428,19 @@ const SistemasList = () => {
               <button title="Eliminar sistema principal" onClick={() => deactivate(principal.id)} className="rounded border border-red-300 p-2 text-red-600"><FiTrash2 /></button>
             </div></td>
           </tr>
-        ))}</tbody>
+        ))}{!loading && sistemasPrincipales.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">No hay sistemas principales registrados.</td></tr>}</tbody>
       </table>
     </div>
+    <PaginationControls
+      pagination={pagination}
+      currentPage={page}
+      perPage={perPage}
+      pageSizes={[10, 25, 50, 100]}
+      itemLabel="sistemas principales"
+      loading={loading}
+      onPageChange={setPage}
+      onPerPageChange={(size) => { setPerPage(size); setPage(1); }}
+    />
   </>;
 };
 
@@ -342,24 +448,37 @@ const SistemasDelPrincipalList = () => {
   const { sistemaPrincipalId } = useParams();
   const [sistemaPrincipal, setSistemaPrincipal] = useState(null);
   const [sistemas, setSistemas] = useState([]);
+  const [pagination, setPagination] = useState(null);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([sistemasPrincipalesService.getSistemaPrincipalById(sistemaPrincipalId), sistemasService.getSistemas()])
-      .then(([principal, todosSistemas]) => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      sistemasPrincipalesService.getSistemaPrincipalById(sistemaPrincipalId),
+      sistemasService.getSistemas({ page, per_page: perPage, search, sistema_principal_id: sistemaPrincipalId }),
+    ])
+      .then(([principal, response]) => {
+        if (cancelled) return;
         setSistemaPrincipal(principal);
-        setSistemas(todosSistemas.filter((sistema) => String(sistema.sistema_principal_id) === String(sistemaPrincipalId)));
+        setSistemas(response.data);
+        setPagination(response);
       })
       .catch((error) => {
-        Swal.fire({ icon: 'error', title: 'No se pudo cargar el sistema', text: error.response?.data?.message || 'Intenta nuevamente.' });
+        if (!cancelled) {
+          Swal.fire({ icon: 'error', title: 'No se pudo cargar el sistema', text: error.response?.data?.message || 'Intenta nuevamente.' });
+        }
       })
-      .finally(() => setLoading(false));
-  }, [sistemaPrincipalId]);
-
-  const sistemasFiltrados = sistemas.filter((sistema) => (
-    `${sistema.nombre || ''} ${sistema.siglas || ''} ${sistema.version || ''}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())
-  ));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sistemaPrincipalId, page, perPage, search]);
 
   if (loading) return <div className="p-8 text-center">Cargando sistemas...</div>;
 
@@ -377,13 +496,21 @@ const SistemasDelPrincipalList = () => {
       </div>
       <div className="relative mb-5">
         <FiSearch className="absolute left-3 top-3 text-gray-400" />
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por nombre, siglas o versión" className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3" />
+        <input
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
+          placeholder="Buscar por nombre, siglas o versión"
+          className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3"
+        />
       </div>
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-colorPrimario text-white"><tr><th className="px-4 py-3">Sistema / variante</th><th className="px-4 py-3">Versión</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Acciones</th></tr></thead>
           <tbody>
-            {sistemasFiltrados.map((sistema) => (
+            {sistemas.map((sistema) => (
               <tr key={sistema.id} className="border-t hover:bg-gray-50">
                 <td className="px-4 py-3"><strong>{sistema.siglas || sistema.nombre}</strong><div className="text-xs text-gray-500">{sistema.nombre}</div></td>
                 <td className="px-4 py-3">{sistema.version || 'Sin versión'}</td>
@@ -391,10 +518,20 @@ const SistemasDelPrincipalList = () => {
                 <td className="px-4 py-3"><Link title="Editar sistema" to={`editar/${sistema.id}`} className="inline-flex items-center gap-1 rounded border border-colorTerciario px-3 py-2 text-colorTerciario"><FiEdit2 /> Editar</Link></td>
               </tr>
             ))}
-            {sistemasFiltrados.length === 0 && <tr><td colSpan="4" className="px-4 py-8 text-center text-gray-500">No hay sistemas o versiones registrados para este sistema principal.</td></tr>}
+            {sistemas.length === 0 && <tr><td colSpan="4" className="px-4 py-8 text-center text-gray-500">No hay sistemas o versiones registrados para este sistema principal.</td></tr>}
           </tbody>
         </table>
       </div>
+      <PaginationControls
+        pagination={pagination}
+        currentPage={page}
+        perPage={perPage}
+        pageSizes={[10, 15, 25, 50]}
+        itemLabel="sistemas"
+        loading={loading}
+        onPageChange={setPage}
+        onPerPageChange={(size) => { setPerPage(size); setPage(1); }}
+      />
     </>
   );
 };
