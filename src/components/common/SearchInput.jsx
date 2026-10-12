@@ -1,49 +1,68 @@
-import React, { useState, useEffect } from 'react';
-import { FaSearch } from 'react-icons/fa';
+import React, { useEffect, useRef, useState } from 'react';
+import { FaSearch, FaTimes } from 'react-icons/fa';
 
-const SearchInput = ({ value, onChange, placeholder = 'Buscar...' }) => {
-  const [searchTerm, setSearchTerm] = useState(value);
-  const [debouncedValue, setDebouncedValue] = useState(value);
+const SearchInput = ({
+  value = '',
+  onChange,
+  placeholder = 'Buscar...',
+  className = '',
+  debounceMs = 300,
+}) => {
+  const [searchTerm, setSearchTerm] = useState(value ?? '');
+  const onChangeRef = useRef(onChange);
 
-  // Actualizar el valor del input cuando cambia el prop value
   useEffect(() => {
-    setSearchTerm(value);
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    setSearchTerm(value ?? '');
   }, [value]);
 
-  // Debounce para evitar demasiadas llamadas a la API
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedValue(searchTerm);
-    }, 300);
+      onChangeRef.current?.(searchTerm);
+    }, debounceMs);
 
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [searchTerm]);
+    return () => clearTimeout(timer);
+  }, [searchTerm, debounceMs]);
 
-  // Llamar a onChange cuando el valor debounceado cambia
-  useEffect(() => {
-    onChange(debouncedValue);
-  }, [debouncedValue, onChange]);
-
-  const handleChange = (e) => {
-    setSearchTerm(e.target.value);
+  const handleClear = () => {
+    setSearchTerm('');
   };
 
   return (
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <FaSearch className="h-5 w-5 text-gray-400" />
+    <div className={`relative w-full ${className}`}>
+      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+        <FaSearch className="h-4 w-4 text-[#8A2036]/70" />
       </div>
       <input
         type="text"
         value={searchTerm}
-        onChange={handleChange}
-        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+        onChange={(event) => setSearchTerm(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && searchTerm) {
+            event.preventDefault();
+            handleClear();
+          }
+        }}
+        className="block w-full rounded-xl border border-[#e8d4d7] bg-white py-2.5 pl-10 pr-10 text-sm text-gray-800 placeholder-gray-400 shadow-sm transition focus:border-[#8A2036] focus:outline-none focus:ring-2 focus:ring-[#8A2036]/20"
         placeholder={placeholder}
+        aria-label={placeholder}
+        autoComplete="off"
       />
+      {searchTerm ? (
+        <button
+          type="button"
+          onClick={handleClear}
+          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 transition hover:text-[#8A2036]"
+          aria-label="Limpiar búsqueda"
+        >
+          <FaTimes className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
     </div>
   );
 };
 
-export default SearchInput; 
+export default SearchInput;

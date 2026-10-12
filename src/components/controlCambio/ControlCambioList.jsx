@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { FiDownload, FiSearch, FiPlus, FiEdit, FiLock, FiUnlock, FiFile } from 'react-icons/fi';
+import { FiDownload, FiPlus, FiEdit, FiFile } from 'react-icons/fi';
 import controlCambioService, { getDocumentoFilename } from '../../services/controlCambioService';
 import { buildControlCambioData, generateControlCambioPdf } from '../../utils/controlCambioPdfGenerator';
+import SearchInput from '../common/SearchInput';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -48,10 +49,32 @@ const ControlCambioList = () => {
     loadData();
   }, []);
 
-  const filtered = items.filter((item) => {
-    const text = `${item.id || ''} ${item.numero_control || ''} ${item.nombre_sistema || ''} ${item.tipo_cambio || ''} ${item.solicitante_nombre || ''}`.toLowerCase();
-    return text.includes(search.toLowerCase());
-  });
+  const handleSearch = useCallback((term) => {
+    setSearch(term ?? '');
+  }, []);
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return items;
+
+    return items.filter((item) => {
+      const text = [
+        item.id,
+        item.numero_control,
+        item.nombre_sistema,
+        item.tipo_cambio,
+        item.prioridad,
+        item.solicitante_nombre,
+        personName(item.solicitante),
+        Number(item.estatus) === 1 ? 'abierto' : 'cerrado',
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return text.includes(query);
+    });
+  }, [items, search]);
 
   const handleDownload = (item) => {
     const ficha = buildControlCambioData(item);
@@ -78,65 +101,29 @@ const ControlCambioList = () => {
     }
   };
 
-  const handleToggleStatus = async (item) => {
-    const nextStatus = Number(item.estatus) === 1 ? 0 : 1;
-    const actionText = nextStatus === 1 ? 'abrir' : 'cerrar';
-    const result = await Swal.fire({
-      title: `¿${actionText === 'abrir' ? 'Abrir' : 'Cerrar'} registro?`,
-      text: `El control ${item.numero_control || item.id} pasará a estado ${nextStatus === 1 ? 'ABIERTO' : 'CERRADO'}.`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, continuar',
-      cancelButtonText: 'Cancelar',
-    });
-
-    if (!result.isConfirmed) return;
-
-    try {
-      await controlCambioService.update(item.id, { estatus: nextStatus });
-      await loadData();
-      Swal.fire({
-        icon: 'success',
-        title: 'Estado actualizado',
-        text: `El registro quedó ${nextStatus === 1 ? 'ABIERTO' : 'CERRADO'}.`,
-        timer: 1800,
-        showConfirmButton: false,
-      });
-    } catch (error) {
-      console.error(error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudo actualizar el estatus.',
-      });
-    }
-  };
-
   return (
-    <div className="mt-8 rounded-2xl bg-white p-5 shadow-md">
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="mt-8 rounded-2xl border border-[#f3dfe3] bg-white p-5 shadow-[0_18px_45px_rgba(138,32,54,0.08)] ring-1 ring-[#f7e9ea]">
+      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Control de cambios</h2>
-          <p className="text-sm text-gray-600">Registros de solicitud, análisis, implementación y autorización.</p>
+          <p className="mt-1 text-sm text-gray-600">Registros de solicitud, análisis, implementación y autorización.</p>
+          <p className="mt-2 text-xs font-medium text-[#8A2036]">
+            {search.trim()
+              ? `${filtered.length} de ${items.length} registro${items.length === 1 ? '' : 's'}`
+              : `${items.length} registro${items.length === 1 ? '' : 's'}`}
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative w-full md:max-w-sm">
-            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <FiSearch className="text-gray-500" />
-            </span>
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar número, sistema o tipo"
-              className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
-          </div>
-
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
+          <SearchInput
+            value={search}
+            onChange={handleSearch}
+            placeholder="Buscar por número, sistema, tipo o estatus"
+            className="sm:min-w-[280px] lg:min-w-[320px]"
+          />
           <Link
             to="/control-cambios/registrar"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:brightness-110"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:brightness-110"
           >
             <FiPlus size={16} /> Nuevo registro
           </Link>
@@ -145,20 +132,17 @@ const ControlCambioList = () => {
 
       {loading ? (
         <div className="flex h-32 items-center justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#8A2036] border-t-transparent" />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-gradient-to-r from-[#8A2036] to-[#a9354c] text-white">
+        <div className="overflow-x-auto rounded-xl border border-[#f3dfe3]">
+          <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+            <thead className="bg-gradient-to-r from-[#8A2036] via-[#9d2b42] to-[#a7354c] text-xs font-bold uppercase tracking-[0.12em] text-white">
               <tr>
                 <th className="px-3 py-3">ID</th>
                 <th className="px-3 py-3">No. control</th>
-                {/* <th className="px-3 py-3">Sistema</th> */}
                 <th className="px-3 py-3">Tipo</th>
-                {/* <th className="px-3 py-3">Prioridad</th> */}
                 <th className="px-3 py-3">Fecha solicitud</th>
-                {/* <th className="px-3 py-3">Solicitante</th> */}
                 <th className="px-3 py-3">Estatus</th>
                 <th className="px-3 py-3 text-center">Acción</th>
               </tr>
@@ -166,18 +150,24 @@ const ControlCambioList = () => {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 py-8 text-center text-gray-500">Sin registros</td>
+                  <td colSpan={6} className="px-3 py-12 text-center">
+                    <p className="font-semibold text-gray-700">
+                      {search.trim() ? 'Sin coincidencias' : 'Sin registros'}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {search.trim()
+                        ? 'Prueba con otro número de control, sistema o tipo.'
+                        : 'Crea el primer control de cambios con el botón “Nuevo registro”.'}
+                    </p>
+                  </td>
                 </tr>
               ) : (
                 filtered.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-200 odd:bg-white even:bg-gray-50">
-                    <td className="px-3 py-3 font-semibold">#{item.id}</td>
+                  <tr key={item.id} className="border-b border-[#f5e5e7] odd:bg-white even:bg-[#fffaf8] transition-colors hover:bg-[#fff3f2]">
+                    <td className="px-3 py-3 font-semibold text-[#2e1f22]">#{item.id}</td>
                     <td className="px-3 py-3">{item.numero_control || '—'}</td>
-                    {/* <td className="px-3 py-3">{item.nombre_sistema || '—'}</td> */}
                     <td className="px-3 py-3">{item.tipo_cambio || '—'}</td>
-                    {/* <td className="px-3 py-3">{item.prioridad || '—'}</td> */}
-                    <td className="px-3 py-3">{fmtDate(item.fecha_solicitud)}</td>
-                    {/* <td className="px-3 py-3">{personName(item.solicitante_nombre || item.solicitante)}</td> */}
+                    <td className="px-3 py-3 text-gray-600">{fmtDate(item.fecha_solicitud)}</td>
                     <td className="px-3 py-3">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${Number(item.estatus) === 1 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200' : 'bg-stone-100 text-stone-700 ring-1 ring-inset ring-stone-200'}`}>
                         {Number(item.estatus) === 1 ? 'ABIERTO' : 'CERRADO'}
@@ -191,21 +181,10 @@ const ControlCambioList = () => {
                           title="Editar registro"
                         >
                           <FiEdit size={16} />
-                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                          <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
                             Editar
                           </span>
                         </Link>
-                        {/* <button
-                          type="button"
-                          onClick={() => handleToggleStatus(item)}
-                          className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-amber-600/30 bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white"
-                          title={Number(item.estatus) === 1 ? 'Cerrar registro' : 'Abrir registro'}
-                        >
-                          {Number(item.estatus) === 1 ? <FiLock size={16} /> : <FiUnlock size={16} />}
-                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
-                            {Number(item.estatus) === 1 ? 'Cerrar' : 'Abrir'}
-                          </span>
-                        </button> */}
                         <button
                           type="button"
                           onClick={() => handleDownload(item)}
@@ -213,7 +192,7 @@ const ControlCambioList = () => {
                           title="Descargar PDF de control"
                         >
                           <FiDownload size={16} />
-                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                          <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
                             PDF
                           </span>
                         </button>
@@ -225,7 +204,7 @@ const ControlCambioList = () => {
                             title="Descargar documento adjunto"
                           >
                             <FiFile size={16} />
-                            <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                            <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
                               Adjunto
                             </span>
                           </button>

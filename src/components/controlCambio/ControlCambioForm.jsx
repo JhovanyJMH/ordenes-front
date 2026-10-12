@@ -2,7 +2,30 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import jsPDF from 'jspdf';
-import { FiDownload, FiClipboard, FiLayers, FiAlertTriangle, FiActivity, FiSearch, FiCheckCircle, FiArrowLeft, FiArrowRight, FiEye, FiLock, FiUnlock } from 'react-icons/fi';
+import {
+  FiDownload,
+  FiClipboard,
+  FiLayers,
+  FiAlertTriangle,
+  FiActivity,
+  FiSearch,
+  FiCheckCircle,
+  FiArrowLeft,
+  FiEye,
+  FiLock,
+  FiUnlock,
+  FiAlertCircle,
+  FiCalendar,
+  FiUser,
+  FiServer,
+  FiChevronRight,
+  FiFileText,
+  FiCamera,
+  FiX,
+  FiCode,
+  FiDatabase,
+  FiSettings,
+} from 'react-icons/fi';
 import controlCambioService, { getDocumentoFilename } from '../../services/controlCambioService';
 import empleadosService from '../../services/empleadosService';
 import usersService from '../../services/usersService';
@@ -73,15 +96,86 @@ const initialForm = {
 };
 
 const STEPS = [
-  { id: 'solicitud', label: 'Solicitud', description: 'Datos generales, sistema y documentación de respaldo.', icon: FiClipboard, color: '#8A2036' },
-  { id: 'cambio', label: 'Cambio requerido', description: 'Clasifica el cambio, su prioridad y los ambientes involucrados.', icon: FiLayers, color: '#1f7a8c' },
-  { id: 'impacto', label: 'Análisis de impacto', description: 'Registra el alcance y los elementos que podrían verse afectados.', icon: FiAlertTriangle, color: '#d97706' },
-  { id: 'historial', label: 'Implementación', description: 'Documenta desarrollo, pruebas, autorización, producción y firmas.', icon: FiActivity, color: '#0f766e' },
-  { id: 'generar', label: 'Guardar', description: 'Verifica el resumen antes de guardar el registro.', icon: FiDownload, color: '#8A2036' },
+  { id: 'solicitud', label: 'Solicitud', description: 'Datos generales, sistema y documentación de respaldo.', icon: FiClipboard, color: '#8A2036', bg: 'from-[#8A2036]/10 to-[#BC955B]/5' },
+  { id: 'cambio', label: 'Cambio requerido', description: 'Clasifica el cambio, su prioridad y los ambientes involucrados.', icon: FiLayers, color: '#1f7a8c', bg: 'from-[#1f7a8c]/10 to-teal-50' },
+  { id: 'impacto', label: 'Análisis de impacto', description: 'Registra el alcance y los elementos que podrían verse afectados.', icon: FiAlertTriangle, color: '#d97706', bg: 'from-amber-100/80 to-orange-50' },
+  { id: 'historial', label: 'Implementación', description: 'Documenta desarrollo, pruebas, autorización, producción y firmas.', icon: FiActivity, color: '#0f766e', bg: 'from-emerald-100/80 to-teal-50' },
+  { id: 'generar', label: 'Revisión', description: 'Confirma el resumen y guarda el control de cambios.', icon: FiDownload, color: '#8A2036', bg: 'from-[#8A2036]/10 to-[#BC955B]/5' },
 ];
 
-const inputClass = 'w-full rounded-lg border border-gray-300 bg-white/95 px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#8A2036] focus:outline-none focus:ring-2 focus:ring-[#8A2036]/20 transition-all shadow-sm';
-const labelClass = 'block text-sm font-semibold text-gray-800 mb-2 tracking-tight';
+const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 shadow-sm transition-all focus:border-[#8A2036] focus:outline-none focus:ring-2 focus:ring-[#8A2036]/20';
+const labelClass = 'mb-2 block text-sm font-semibold tracking-tight text-gray-800';
+
+const FieldLabel = ({ children, required, htmlFor }) => (
+  <label htmlFor={htmlFor} className={labelClass}>
+    {children}
+    {required ? <span className="ml-1 text-[#8A2036]">*</span> : null}
+  </label>
+);
+
+const SearchPicker = ({ label, required, value, filled, placeholder, onOpen, hint }) => {
+  const isFilled = filled ?? Boolean(value);
+  return (
+    <div>
+      {label ? <FieldLabel required={required}>{label}</FieldLabel> : null}
+      <div className="relative">
+        <input
+          type="text"
+          value={value}
+          readOnly
+          placeholder={placeholder}
+          onClick={onOpen}
+          className={`${inputClass} cursor-pointer pr-12 ${isFilled ? 'border-emerald-200 bg-emerald-50/70' : 'bg-gray-50'}`}
+        />
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={label ? `Buscar ${label}` : 'Buscar'}
+          className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 transition-all ${
+            isFilled ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          <FiSearch size={18} />
+        </button>
+      </div>
+      {hint ? <p className="mt-2 text-xs leading-relaxed text-gray-500">{hint}</p> : null}
+    </div>
+  );
+};
+
+const ChoiceButton = ({ selected, onClick, title, description, accent = '#8A2036' }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-pressed={selected}
+    className={`relative w-full rounded-2xl border-2 p-4 text-left transition-all duration-200 ${
+      selected
+        ? 'bg-white shadow-md ring-2 ring-offset-1'
+        : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'
+    }`}
+    style={selected ? { borderColor: accent, ringColor: `${accent}4D` } : undefined}
+  >
+    {selected ? (
+      <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full text-white" style={{ backgroundColor: accent }}>
+        <FiCheckCircle size={12} />
+      </span>
+    ) : null}
+    <span className="block font-bold text-gray-800">{title}</span>
+    {description ? <span className="mt-1 block text-xs text-gray-500">{description}</span> : null}
+  </button>
+);
+
+const SectionCard = ({ icon: Icon, title, children, accent = '#8A2036' }) => (
+  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+    {title ? (
+      <div className="mb-4 flex items-center gap-2" style={{ color: accent }}>
+        {Icon ? <Icon size={18} /> : null}
+        <span className="text-sm font-bold uppercase tracking-wide">{title}</span>
+      </div>
+    ) : null}
+    {children}
+  </div>
+);
 
 const employeeName = (emp) => {
   if (!emp) return '';
@@ -137,46 +231,6 @@ const preparePdfDocument = async (file) => {
   const baseName = file.name.replace(/\.[^.]+$/, '') || 'documento';
   return new File([pdf.output('blob')], `${baseName}.pdf`, { type: 'application/pdf' });
 };
-
-const CheckGroup = ({ title, items, formData, onChange }) => (
-  <div className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
-    <h3 className="mb-4 text-sm font-bold text-gray-800 tracking-tight">{title}</h3>
-    <div className="space-y-3">
-      {items.map(([name, label]) => (
-        <label key={name} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
-          <input type="checkbox" name={name} checked={Boolean(formData[name])} onChange={onChange} className="h-4 w-4 accent-[#8A2036]" />
-          {label}
-        </label>
-      ))}
-    </div>
-  </div>
-);
-
-const RadioGroup = ({ title, name, options, formData, onChange, cols = 1 }) => (
-  <div className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
-    <h3 className="mb-4 text-sm font-bold text-gray-800 tracking-tight">{title}</h3>
-    <div className={cols === 1 ? 'space-y-3' : 'grid gap-3 md:grid-cols-3'}>
-      {options.map((opt) => (
-        <label key={opt} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
-          <input type="radio" name={name} value={opt} checked={formData[name] === opt} onChange={onChange} className="h-4 w-4 accent-[#8A2036]" />
-          {opt}
-        </label>
-      ))}
-    </div>
-  </div>
-);
-
-const PersonField = ({ label, value, onOpen, focusRing }) => (
-  <div>
-    <label className={labelClass}>{label}</label>
-    <div className="flex gap-2">
-      <input type="text" value={value} readOnly placeholder="Buscar empleado..." className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm cursor-pointer" onClick={onOpen} style={focusRing} />
-      <button type="button" onClick={onOpen} className="rounded-lg bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-4 py-3 text-white shadow-md">
-        <FiSearch size={18} />
-      </button>
-    </div>
-  </div>
-);
 
 const ControlCambioForm = ({ mode = 'create', editId = null }) => {
   const navigate = useNavigate();
@@ -293,13 +347,18 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
     }
   };
 
-  const canGenerate = useMemo(
-    () => Boolean(formData.sistema_id && formData.nombre_sistema && formData.fecha_solicitud),
-    [formData.sistema_id, formData.nombre_sistema, formData.fecha_solicitud],
-  );
+  const missingSolicitud = useMemo(() => {
+    const missing = [];
+    if (!formData.fecha_solicitud) missing.push('Fecha de solicitud');
+    if (!formData.sistema_id) missing.push('Sistema del catálogo');
+    if (!formData.nombre_sistema) missing.push('Nombre del sistema');
+    return missing;
+  }, [formData.fecha_solicitud, formData.sistema_id, formData.nombre_sistema]);
+
+  const canGenerate = missingSolicitud.length === 0;
+  const solicitudProgress = Math.round(((3 - missingSolicitud.length) / 3) * 100);
 
   const step = STEPS[currentStep];
-  const focusRing = { '--tw-ring-color': step.color };
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -307,6 +366,10 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+  };
+
+  const toggleFlag = (name) => {
+    setFormData((prev) => ({ ...prev, [name]: !prev[name] }));
   };
 
   const handleAlcanceChange = (value) => {
@@ -440,233 +503,347 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
       case 'solicitud':
         return (
           <div className="space-y-6">
-            <div className="rounded-xl border border-gray-200/60 bg-white/95 p-6 shadow-lg">
-              <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <SectionCard icon={FiCalendar} title="Solicitud">
                 <div>
-                  <label className={labelClass}>Fecha de solicitud</label>
+                  <FieldLabel required>Fecha de solicitud</FieldLabel>
                   <input type="date" name="fecha_solicitud" value={formData.fecha_solicitud} onChange={handleChange} className={inputClass} />
                 </div>
-                {formData.numero_control && (
-                  <div>
-                    <label className={labelClass}>Número de control</label>
-                    <input type="text" name="numero_control" value={formData.numero_control} readOnly className={`${inputClass} bg-gray-50`} />
-                  </div>
-                )}
-                <div className="md:col-span-2">
-                  <label className={labelClass}>Sistema del catálogo</label>
-                  <div className="flex gap-2">
-                    <input type="text" value={formData.nombre_sistema} readOnly placeholder="Buscar sistema..." className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm" onClick={() => openModal('sistema')} />
-                    <button type="button" onClick={() => openModal('sistema')} className="rounded-lg bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-4 py-3 text-white shadow-md"><FiSearch size={18} /></button>
-                  </div>
+          
+              </SectionCard>
+
+              <SectionCard icon={FiUser} title="Solicitante">
+                <SearchPicker
+                  label="Nombre y firma del solicitante"
+                  value={formData.solicitante_nombre}
+                  placeholder="Buscar empleado..."
+                  onOpen={() => openModal('solicitante')}
+                />
+                <div className="mt-4">
+                  <FieldLabel>Área solicitante</FieldLabel>
+                  <input type="text" name="area_solicitante" value={formData.area_solicitante} onChange={handleChange} className={inputClass} />
                 </div>
-                <div className="md:col-span-2">
-                  <label className={labelClass}>Nombre del sistema</label>
+              </SectionCard>
+            </div>
+
+            <SectionCard icon={FiServer} title="Sistema">
+              <div className="grid gap-4 md:grid-cols-2">
+                <SearchPicker
+                  label="Sistema del catálogo"
+                  required
+                  value={formData.nombre_sistema}
+                  filled={Boolean(formData.sistema_id)}
+                  placeholder="Buscar sistema..."
+                  onOpen={() => openModal('sistema')}
+                  hint="La selección del catálogo identifica el sistema del cambio."
+                />
+                <div>
+                  <FieldLabel required>Nombre del sistema</FieldLabel>
                   <input type="text" name="nombre_sistema" value={formData.nombre_sistema} onChange={handleChange} className={inputClass} />
                 </div>
-                <div className="md:col-span-2">
-                  <label className={labelClass}>Descripción de la solicitud</label>
-                  <textarea name="descripcion_solicitud" value={formData.descripcion_solicitud} onChange={handleChange} rows={3} className={inputClass} />
-                </div>
                 <div>
-                  <label className={labelClass}>Módulo / Funcionalidad</label>
+                  <FieldLabel>Módulo / Funcionalidad</FieldLabel>
                   <input type="text" name="modulo_funcionalidad" value={formData.modulo_funcionalidad} onChange={handleChange} className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>Usuarios afectados</label>
+                  <FieldLabel>Usuarios afectados</FieldLabel>
                   <input type="text" name="usuarios_afectados" value={formData.usuarios_afectados} onChange={handleChange} className={inputClass} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className={labelClass}>Justificación</label>
-                  <textarea name="justificacion" value={formData.justificacion} onChange={handleChange} rows={3} className={inputClass} />
+                  <FieldLabel>Descripción de la solicitud</FieldLabel>
+                  <textarea name="descripcion_solicitud" value={formData.descripcion_solicitud} onChange={handleChange} rows={3} className={inputClass} placeholder="Describe el cambio solicitado." />
                 </div>
-                <div>
-                  <label className={labelClass}>Área solicitante</label>
-                  <input type="text" name="area_solicitante" value={formData.area_solicitante} onChange={handleChange} className={inputClass} />
+                <div className="md:col-span-2">
+                  <FieldLabel>Justificación</FieldLabel>
+                  <textarea name="justificacion" value={formData.justificacion} onChange={handleChange} rows={3} className={inputClass} placeholder="Motivo o beneficio del cambio." />
                 </div>
-                <PersonField label="Nombre y firma del solicitante" value={formData.solicitante_nombre} onOpen={() => openModal('solicitante')} focusRing={focusRing} />
               </div>
-            </div>
-            <CheckGroup
-              title="Documento de respaldo"
-              formData={formData}
-              onChange={handleChange}
-              items={[
-                ['respaldo_oficio', 'Oficio formal de solicitud'],
-                ['respaldo_correo', 'Correo institucional de solicitud'],
-                ['respaldo_minuta', 'Minuta de reunión autorizada'],
-                ['respaldo_pruebas', 'Evidencia de pruebas realizadas'],
-              ]}
-            />
+            </SectionCard>
+
+            <SectionCard icon={FiFileText} title="Documento de respaldo">
+              <p className="mb-3 text-xs text-gray-500">Puedes marcar uno o varios.</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ['respaldo_oficio', 'Oficio formal de solicitud'],
+                  ['respaldo_correo', 'Correo institucional de solicitud'],
+                  ['respaldo_minuta', 'Minuta de reunión autorizada'],
+                  ['respaldo_pruebas', 'Evidencia de pruebas realizadas'],
+                ].map(([name, title]) => (
+                  <ChoiceButton key={name} selected={Boolean(formData[name])} onClick={() => toggleFlag(name)} title={title} />
+                ))}
+              </div>
+            </SectionCard>
           </div>
         );
       case 'cambio':
         return (
           <div className="space-y-6">
-            <CheckGroup
-              title="Ambiente"
-              formData={formData}
-              onChange={handleChange}
-              items={[
-                ['ambiente_pruebas', 'Ambiente Pruebas'],
-                ['ambiente_productivo', 'Ambiente Productivo'],
-              ]}
-            />
-            <div className="grid gap-5 md:grid-cols-2">
-              <RadioGroup title="Impacto" name="impacto" options={['Crítico', 'Moderado', 'Bajo']} formData={formData} onChange={handleChange} />
-              <RadioGroup title="Prioridad" name="prioridad" options={['Alta', 'Media', 'Baja']} formData={formData} onChange={handleChange} />
+            <div className="grid gap-6 lg:grid-cols-3">
+              <SectionCard title="Ambiente" accent="#1f7a8c">
+                <div className="space-y-3">
+                  <ChoiceButton
+                    selected={formData.ambiente_pruebas}
+                    onClick={() => toggleFlag('ambiente_pruebas')}
+                    title="Ambiente de pruebas"
+                    description="Validación previa"
+                    accent="#1f7a8c"
+                  />
+                  <ChoiceButton
+                    selected={formData.ambiente_productivo}
+                    onClick={() => toggleFlag('ambiente_productivo')}
+                    title="Ambiente productivo"
+                    description="Operación en vivo"
+                    accent="#0f766e"
+                  />
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Impacto">
+                <div className="space-y-3">
+                  {[
+                    ['Crítico', 'Afecta operación esencial', '#b91c1c'],
+                    ['Moderado', 'Impacto controlado', '#b45309'],
+                    ['Bajo', 'Efecto limitado', '#0369a1'],
+                  ].map(([option, description, accent]) => (
+                    <ChoiceButton
+                      key={option}
+                      selected={formData.impacto === option}
+                      onClick={() => setFormData((prev) => ({ ...prev, impacto: option }))}
+                      title={option}
+                      description={description}
+                      accent={accent}
+                    />
+                  ))}
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Prioridad">
+                <div className="space-y-3">
+                  {[
+                    ['Alta', 'Atención inmediata', '#b91c1c'],
+                    ['Media', 'Programada', '#b45309'],
+                    ['Baja', 'Puede esperar', '#0369a1'],
+                  ].map(([option, description, accent]) => (
+                    <ChoiceButton
+                      key={option}
+                      selected={formData.prioridad === option}
+                      onClick={() => setFormData((prev) => ({ ...prev, prioridad: option }))}
+                      title={option}
+                      description={description}
+                      accent={accent}
+                    />
+                  ))}
+                </div>
+              </SectionCard>
             </div>
-            <RadioGroup title="Tipo de cambio" name="tipo_cambio" options={['Correctivo', 'Preventivo', 'Evolutivo', 'Adaptativo', 'Mejora Funcional']} formData={formData} onChange={handleChange} cols={3} />
-            <CheckGroup
-              title="Clasificación adicional"
-              formData={formData}
-              onChange={handleChange}
-              items={[
-                ['clasificacion_frontend', 'Frontend'],
-                ['clasificacion_backend', 'Backend'],
-                ['clasificacion_bd', 'Base de Datos'],
-                ['clasificacion_infraestructura', 'Infraestructura / Servidor'],
-              ]}
-            />
+
+            <SectionCard title="Tipo de cambio">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                {['Correctivo', 'Preventivo', 'Evolutivo', 'Adaptativo', 'Mejora Funcional'].map((option) => (
+                  <ChoiceButton
+                    key={option}
+                    selected={formData.tipo_cambio === option}
+                    onClick={() => setFormData((prev) => ({ ...prev, tipo_cambio: option }))}
+                    title={option}
+                  />
+                ))}
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Clasificación adicional">
+              <p className="mb-3 text-xs text-gray-500">Marca los componentes involucrados.</p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['clasificacion_frontend', 'Frontend', FiCode],
+                  ['clasificacion_backend', 'Backend', FiServer],
+                  ['clasificacion_bd', 'Base de Datos', FiDatabase],
+                  ['clasificacion_infraestructura', 'Infraestructura / Servidor', FiSettings],
+                ].map(([name, title, Icon]) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => toggleFlag(name)}
+                    className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition ${
+                      formData[name]
+                        ? 'border-[#1f7a8c] bg-white shadow-md'
+                        : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'
+                    }`}
+                  >
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${formData[name] ? 'bg-[#1f7a8c]/10 text-[#1f7a8c]' : 'bg-gray-100 text-gray-400'}`}>
+                      <Icon size={18} />
+                    </span>
+                    <span className="font-bold text-gray-800">{title}</span>
+                  </button>
+                ))}
+              </div>
+            </SectionCard>
           </div>
         );
       case 'impacto':
         return (
           <div className="space-y-6">
-            <div className="rounded-xl border border-gray-200/60 bg-white/95 p-6 shadow-lg">
-              <div className="grid gap-5 md:grid-cols-2">
+            <SectionCard icon={FiAlertTriangle} title="Análisis" accent="#d97706">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className={labelClass}>Fecha de análisis</label>
+                  <FieldLabel>Fecha de análisis</FieldLabel>
                   <input type="date" name="fecha_analisis" value={formData.fecha_analisis} onChange={handleChange} className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>Elementos afectados</label>
+                  <FieldLabel>Elementos afectados</FieldLabel>
                   <input type="text" name="elementos_afectados" value={formData.elementos_afectados} onChange={handleChange} className={inputClass} />
                 </div>
                 <div className="md:col-span-2">
-                  <h3 className="mb-3 text-sm font-bold text-gray-800">Alcance del cambio</h3>
+                  <FieldLabel>Alcance del cambio</FieldLabel>
                   <div className="grid gap-3 md:grid-cols-2">
-                    {[['menores', 'Cambios menores'], ['mayores', 'Cambios mayores']].map(([value, label]) => (
-                      <label key={value} className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm cursor-pointer">
-                        <input
-                          type="radio"
-                          name="alcance_cambio"
-                          checked={value === 'menores' ? formData.cambios_menores : formData.cambios_mayores}
-                          onChange={() => handleAlcanceChange(value)}
-                          className="h-4 w-4 accent-[#8A2036]"
-                        />
-                        {label}
-                      </label>
-                    ))}
+                    <ChoiceButton
+                      selected={formData.cambios_menores}
+                      onClick={() => handleAlcanceChange('menores')}
+                      title="Cambios menores"
+                      description="Ajustes de bajo riesgo"
+                      accent="#0369a1"
+                    />
+                    <ChoiceButton
+                      selected={formData.cambios_mayores}
+                      onClick={() => handleAlcanceChange('mayores')}
+                      title="Cambios mayores"
+                      description="Requiere mayor control"
+                      accent="#b91c1c"
+                    />
                   </div>
                 </div>
                 <div className="md:col-span-2">
-                  <label className={labelClass}>Descripción</label>
-                  <textarea name="descripcion_impacto" value={formData.descripcion_impacto} onChange={handleChange} rows={3} className={inputClass} />
+                  <FieldLabel>Descripción</FieldLabel>
+                  <textarea name="descripcion_impacto" value={formData.descripcion_impacto} onChange={handleChange} rows={3} className={inputClass} placeholder="Describe el impacto esperado." />
                 </div>
                 <div className="md:col-span-2">
-                  <label className={labelClass}>Alcance</label>
-                  <textarea name="alcance" value={formData.alcance} onChange={handleChange} rows={3} className={inputClass} />
+                  <FieldLabel>Alcance</FieldLabel>
+                  <textarea name="alcance" value={formData.alcance} onChange={handleChange} rows={3} className={inputClass} placeholder="Límites y cobertura del cambio." />
                 </div>
               </div>
-            </div>
+            </SectionCard>
           </div>
         );
       case 'historial':
         return (
           <div className="space-y-6">
-            {[
-              {
-                title: 'Aplicación del cambio en Ambiente de Desarrollo',
-                fields: (
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div>
-                      <label className={labelClass}>Fecha</label>
-                      <input type="date" name="fecha_desarrollo" value={formData.fecha_desarrollo} onChange={handleChange} className={inputClass} />
-                    </div>
-                    <PersonField label="Responsable de realizar cambios" value={formData.responsable_desarrollo} onOpen={() => openModal('responsable_desarrollo')} focusRing={focusRing} />
-                    <div className="md:col-span-2">
-                      <label className={labelClass}>Solución</label>
-                      <textarea name="solucion" value={formData.solucion} onChange={handleChange} rows={2} className={inputClass} />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className={labelClass}>Revisiones</label>
-                      <textarea name="revisiones" value={formData.revisiones} onChange={handleChange} rows={2} className={inputClass} />
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                title: 'Aplicación del cambio en Ambiente de Pruebas',
-                fields: (
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div>
-                      <label className={labelClass}>Fecha</label>
-                      <input type="date" name="fecha_pruebas" value={formData.fecha_pruebas} onChange={handleChange} className={inputClass} />
-                    </div>
-                    <PersonField label="Responsable de las pruebas" value={formData.responsable_pruebas} onOpen={() => openModal('responsable_pruebas')} focusRing={focusRing} />
-                    <div className="md:col-span-2">
-                      <label className={labelClass}>Observaciones</label>
-                      <textarea name="observaciones_pruebas" value={formData.observaciones_pruebas} onChange={handleChange} rows={2} className={inputClass} />
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                title: 'Autorización para liberación a Producción',
-                fields: (
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div>
-                      <label className={labelClass}>Fecha</label>
-                      <input type="date" name="fecha_autorizacion" value={formData.fecha_autorizacion} onChange={handleChange} className={inputClass} />
-                    </div>
-                    <PersonField label="Responsable" value={formData.responsable_autorizacion} onOpen={() => openModal('responsable_autorizacion')} focusRing={focusRing} />
-                    <div className="md:col-span-2">
-                      <label className={labelClass}>Observaciones</label>
-                      <textarea name="observaciones_autorizacion" value={formData.observaciones_autorizacion} onChange={handleChange} rows={2} className={inputClass} />
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                title: 'Aplicación de cambios en Ambiente Productivo',
-                fields: (
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div>
-                      <label className={labelClass}>Fecha</label>
-                      <input type="date" name="fecha_produccion" value={formData.fecha_produccion} onChange={handleChange} className={inputClass} />
-                    </div>
-                    <PersonField label="Responsable" value={formData.responsable_produccion} onOpen={() => openModal('responsable_produccion')} focusRing={focusRing} />
-                    <div className="md:col-span-2">
-                      <label className={labelClass}>Resultado de implementación</label>
-                      <textarea name="resultado_implementacion" value={formData.resultado_implementacion} onChange={handleChange} rows={2} className={inputClass} />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className={labelClass}>Observaciones</label>
-                      <textarea name="observaciones_produccion" value={formData.observaciones_produccion} onChange={handleChange} rows={2} className={inputClass} />
-                    </div>
-                  </div>
-                ),
-              },
-            ].map((section) => (
-              <div key={section.title} className="rounded-xl border border-gray-200/60 bg-white/95 p-6 shadow-lg">
-                <p className="mb-4 border-b border-gray-200 pb-3 text-sm font-bold uppercase tracking-wide text-gray-700">{section.title}</p>
-                {section.fields}
-              </div>
-            ))}
-            <div className="rounded-xl border border-gray-200/60 bg-white/95 p-6 shadow-lg">
-              <p className="mb-4 border-b border-gray-200 pb-3 text-sm font-bold uppercase tracking-wide text-gray-700">Firmas</p>
-              <div className="grid gap-5 md:grid-cols-2">
+            <SectionCard icon={FiCode} title="Desarrollo" accent="#0f766e">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <PersonField label="Área solicitante" value={formData.firmante_area_solicitante} onOpen={() => openModal('firmante_area_solicitante')} focusRing={focusRing} />
-                  <input type="text" name="cargo_area_solicitante" value={formData.cargo_area_solicitante} onChange={handleChange} className={`${inputClass} mt-2`} />
+                  <FieldLabel>Fecha</FieldLabel>
+                  <input type="date" name="fecha_desarrollo" value={formData.fecha_desarrollo} onChange={handleChange} className={inputClass} />
                 </div>
-                <div>
-                  <PersonField label="Responsable de desarrollo" value={formData.firmante_desarrollo} onOpen={() => openModal('firmante_desarrollo')} focusRing={focusRing} />
-                  <input type="text" name="cargo_desarrollo" value={formData.cargo_desarrollo} onChange={handleChange} className={`${inputClass} mt-2`} />
+                <SearchPicker
+                  label="Responsable de realizar cambios"
+                  value={formData.responsable_desarrollo}
+                  placeholder="Buscar usuario..."
+                  onOpen={() => openModal('responsable_desarrollo')}
+                />
+                <div className="md:col-span-2">
+                  <FieldLabel>Solución</FieldLabel>
+                  <textarea name="solucion" value={formData.solucion} onChange={handleChange} rows={2} className={inputClass} />
                 </div>
                 <div className="md:col-span-2">
-                  <PersonField label="Director DGDITI" value={formData.firmante_director} onOpen={() => openModal('firmante_director')} focusRing={focusRing} />
-                  <input type="text" name="cargo_director" value={formData.cargo_director} onChange={handleChange} className={`${inputClass} mt-2`} />
+                  <FieldLabel>Revisiones</FieldLabel>
+                  <textarea name="revisiones" value={formData.revisiones} onChange={handleChange} rows={2} className={inputClass} />
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard icon={FiCheckCircle} title="Pruebas" accent="#0f766e">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <FieldLabel>Fecha</FieldLabel>
+                  <input type="date" name="fecha_pruebas" value={formData.fecha_pruebas} onChange={handleChange} className={inputClass} />
+                </div>
+                <SearchPicker
+                  label="Responsable de las pruebas"
+                  value={formData.responsable_pruebas}
+                  placeholder="Buscar usuario..."
+                  onOpen={() => openModal('responsable_pruebas')}
+                />
+                <div className="md:col-span-2">
+                  <FieldLabel>Observaciones</FieldLabel>
+                  <textarea name="observaciones_pruebas" value={formData.observaciones_pruebas} onChange={handleChange} rows={2} className={inputClass} />
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard icon={FiLock} title="Autorización para producción" accent="#0f766e">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <FieldLabel>Fecha</FieldLabel>
+                  <input type="date" name="fecha_autorizacion" value={formData.fecha_autorizacion} onChange={handleChange} className={inputClass} />
+                </div>
+                <SearchPicker
+                  label="Responsable"
+                  value={formData.responsable_autorizacion}
+                  placeholder="Buscar usuario..."
+                  onOpen={() => openModal('responsable_autorizacion')}
+                />
+                <div className="md:col-span-2">
+                  <FieldLabel>Observaciones</FieldLabel>
+                  <textarea name="observaciones_autorizacion" value={formData.observaciones_autorizacion} onChange={handleChange} rows={2} className={inputClass} />
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard icon={FiServer} title="Ambiente productivo" accent="#0f766e">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <FieldLabel>Fecha</FieldLabel>
+                  <input type="date" name="fecha_produccion" value={formData.fecha_produccion} onChange={handleChange} className={inputClass} />
+                </div>
+                <SearchPicker
+                  label="Responsable"
+                  value={formData.responsable_produccion}
+                  placeholder="Buscar usuario..."
+                  onOpen={() => openModal('responsable_produccion')}
+                />
+                <div className="md:col-span-2">
+                  <FieldLabel>Resultado de implementación</FieldLabel>
+                  <textarea name="resultado_implementacion" value={formData.resultado_implementacion} onChange={handleChange} rows={2} className={inputClass} />
+                </div>
+                <div className="md:col-span-2">
+                  <FieldLabel>Observaciones</FieldLabel>
+                  <textarea name="observaciones_produccion" value={formData.observaciones_produccion} onChange={handleChange} rows={2} className={inputClass} />
+                </div>
+              </div>
+            </SectionCard>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              {[
+                ['Área solicitante', 'firmante_area_solicitante', 'cargo_area_solicitante'],
+                ['Responsable de desarrollo', 'firmante_desarrollo', 'cargo_desarrollo'],
+              ].map(([title, field, cargoField]) => (
+                <div key={field} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="mb-4 flex items-center gap-2 text-[#BC955B]">
+                    <FiUser size={18} />
+                    <span className="text-sm font-bold uppercase tracking-wide text-[#8A2036]">{title}</span>
+                  </div>
+                  <SearchPicker
+                    value={formData[field]}
+                    placeholder="Buscar empleado..."
+                    onOpen={() => openModal(field)}
+                  />
+                  <div className="mt-4">
+                    <FieldLabel htmlFor={cargoField}>Cargo para el PDF</FieldLabel>
+                    <input id={cargoField} type="text" name={cargoField} value={formData[cargoField]} onChange={handleChange} className={inputClass} />
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm md:col-span-2">
+                <div className="mb-4 flex items-center gap-2 text-[#BC955B]">
+                  <FiUser size={18} />
+                  <span className="text-sm font-bold uppercase tracking-wide text-[#8A2036]">Director DGDITI</span>
+                </div>
+                <SearchPicker
+                  value={formData.firmante_director}
+                  placeholder="Buscar empleado..."
+                  onOpen={() => openModal('firmante_director')}
+                />
+                <div className="mt-4">
+                  <FieldLabel htmlFor="cargo_director">Cargo para el PDF</FieldLabel>
+                  <input id="cargo_director" type="text" name="cargo_director" value={formData.cargo_director} onChange={handleChange} className={inputClass} />
                 </div>
               </div>
             </div>
@@ -675,108 +852,132 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
       case 'generar':
         return (
           <div className="space-y-6">
-            <div className="flex items-start gap-4 rounded-xl border-l-4 border-[#8A2036] bg-white/80 p-5 shadow-sm">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#8A2036] to-[#a9354c] text-white shadow-lg">
-                <FiDownload size={20} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-800 tracking-tight">Guardar control de cambios</p>
-                <p className="mt-1 text-sm text-gray-600">Revisa el resumen y elige el estado del registro antes de guardar.</p>
-              </div>
-            </div>
-            {mode === 'edit' && (
-              <div className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
-                <p className={labelClass}>Estado del control de cambios</p>
-                <p className="mb-3 text-sm text-gray-600">Elige si el registro quedará abierto o cerrado al actualizar.</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    { value: 1, label: 'Abierto', description: 'El control podrá seguir actualizándose.', selected: 'border-emerald-600 bg-emerald-50 text-emerald-800' },
-                    { value: 0, label: 'Cerrado', description: 'El control quedará marcado como cerrado.', selected: 'border-stone-500 bg-stone-100 text-stone-800' },
-                  ].map(({ value, label, description, selected }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      aria-pressed={Number(formData.estatus) === value}
-                      onClick={() => setFormData((prev) => ({ ...prev, estatus: value }))}
-                      className={`flex items-center gap-3 rounded-xl border-2 p-4 text-left transition ${
-                        Number(formData.estatus) === value
-                          ? selected
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      {value === 1 ? <FiUnlock size={20} /> : <FiLock size={20} />}
-                      <span>
-                        <span className="block font-bold">{label}</span>
-                        <span className="mt-1 block text-xs">{description}</span>
-                      </span>
-                    </button>
-                  ))}
+            {!canGenerate ? (
+              <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <FiAlertCircle className="mt-0.5 shrink-0" size={18} />
+                <div>
+                  <p className="font-semibold">Faltan datos de la solicitud</p>
+                  <p className="mt-1 text-amber-800">{missingSolicitud.join(' · ')}</p>
                 </div>
               </div>
+            ) : (
+              <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                <FiCheckCircle className="mt-0.5 shrink-0" size={18} />
+                <p>Los datos mínimos de la solicitud están completos. Revisa el resumen antes de guardar.</p>
+              </div>
             )}
+
             {mode === 'edit' && (
-              <div className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
-                <h3 className="mb-2 text-sm font-bold text-gray-800">Adjuntar PDF (opcional)</h3>
-                <p className="mb-4 text-sm text-gray-600">
-                  Carga un PDF o escanéalo con la cámara. Las imágenes se convierten a PDF al guardar.
-                  {formData.tiene_documento_pdf && !documentoPdf && ' El adjunto actual se conservará si no lo reemplazas.'}
-                </p>
-                {loadingDocumentoPreview && (
-                  <div className="mb-4 flex h-20 items-center justify-center text-sm text-gray-500">Cargando vista previa...</div>
-                )}
-                {documentoPreview && (
-                  <div className="mb-4 overflow-hidden rounded-lg border border-gray-200">
-                    <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700">
-                      <FiEye size={16} />
-                      Vista previa {documentoPdf ? 'del archivo seleccionado' : 'del PDF guardado'}
-                      {(!documentoPdf || documentoPdf.type === 'application/pdf' || /\.pdf$/i.test(documentoPdf.name)) && (
-                        <a
-                          href={documentoPreview.url}
-                          download={getDocumentoFilename(formData.numero_control || `control-cambios-${editId || 'nuevo'}`)}
-                          className="ml-auto inline-flex items-center gap-1 rounded-lg border border-[#8A2036]/30 bg-white px-3 py-1.5 text-xs font-bold text-[#8A2036] hover:bg-[#8A2036] hover:text-white"
-                        >
-                          <FiDownload size={14} /> Descargar adjunto
-                        </a>
+              <>
+                <SectionCard title="Estado del control de cambios">
+                  <p className="mb-3 text-sm text-gray-600">Define si el registro quedará abierto o cerrado al actualizar.</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {[
+                      { value: 1, label: 'Abierto', description: 'El control podrá seguir actualizándose.', icon: FiUnlock, selected: 'border-emerald-600 bg-emerald-50 text-emerald-800' },
+                      { value: 0, label: 'Cerrado', description: 'El control quedará marcado como cerrado.', icon: FiLock, selected: 'border-stone-500 bg-stone-100 text-stone-800' },
+                    ].map(({ value, label, description, icon: Icon, selected }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={Number(formData.estatus) === value}
+                        onClick={() => setFormData((prev) => ({ ...prev, estatus: value }))}
+                        className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition ${
+                          Number(formData.estatus) === value ? selected : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <Icon size={20} />
+                        <span>
+                          <span className="block font-bold">{label}</span>
+                          <span className="mt-1 block text-xs">{description}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </SectionCard>
+
+                <SectionCard icon={FiFileText} title="Documento de respaldo">
+                  <p className="mb-4 text-sm text-gray-600">
+                    Carga un PDF o escanéalo con la cámara. Las imágenes se convierten a PDF al guardar.
+                    {formData.tiene_documento_pdf && !documentoPdf ? ' El adjunto actual se conservará si no lo reemplazas.' : ''}
+                  </p>
+                  {loadingDocumentoPreview && (
+                    <div className="mb-4 flex h-20 items-center justify-center text-sm text-gray-500">Cargando vista previa...</div>
+                  )}
+                  {documentoPreview && (
+                    <div className="mb-4 overflow-hidden rounded-xl border border-gray-200">
+                      <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700">
+                        <FiEye size={16} />
+                        Vista previa {documentoPdf ? 'del archivo seleccionado' : 'del PDF guardado'}
+                        {(!documentoPdf || documentoPdf.type === 'application/pdf' || /\.pdf$/i.test(documentoPdf.name)) && (
+                          <a
+                            href={documentoPreview.url}
+                            download={getDocumentoFilename(formData.numero_control || `control-cambios-${editId || 'nuevo'}`)}
+                            className="ml-auto inline-flex items-center gap-1 rounded-lg border border-[#8A2036]/30 bg-white px-3 py-1.5 text-xs font-bold text-[#8A2036] hover:bg-[#8A2036] hover:text-white"
+                          >
+                            <FiDownload size={14} /> Descargar adjunto
+                          </a>
+                        )}
+                      </div>
+                      {documentoPreview.type.startsWith('image/') ? (
+                        <img src={documentoPreview.url} alt="Vista previa del documento escaneado" className="mx-auto max-h-[600px] w-full bg-gray-100 object-contain" />
+                      ) : (
+                        <iframe title="Vista previa del PDF adjunto" src={documentoPreview.url} className="h-[600px] w-full" />
                       )}
                     </div>
-                    {documentoPreview.type.startsWith('image/') ? (
-                      <img src={documentoPreview.url} alt="Vista previa del documento escaneado" className="mx-auto max-h-[600px] w-full bg-gray-100 object-contain" />
-                    ) : (
-                      <iframe title="Vista previa del PDF adjunto" src={documentoPreview.url} className="h-[600px] w-full" />
-                    )}
+                  )}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition hover:border-[#8A2036]/40 hover:bg-[#8A2036]/5">
+                      <FiFileText className="mb-2 text-[#8A2036]" size={22} />
+                      <span className="text-sm font-semibold text-gray-800">Cargar PDF</span>
+                      <span className="mt-1 text-xs text-gray-500">Selecciona un archivo .pdf</span>
+                      <input
+                        ref={pdfInputRef}
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        onChange={(event) => setDocumentoPdf(event.target.files?.[0] || null)}
+                        className="sr-only"
+                      />
+                    </label>
+                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition hover:border-[#8A2036]/40 hover:bg-[#8A2036]/5">
+                      <FiCamera className="mb-2 text-[#8A2036]" size={22} />
+                      <span className="text-sm font-semibold text-gray-800">Escanear con cámara</span>
+                      <span className="mt-1 text-xs text-gray-500">JPEG, PNG o WEBP</span>
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        capture="environment"
+                        onChange={(event) => setDocumentoPdf(event.target.files?.[0] || null)}
+                        className="sr-only"
+                      />
+                    </label>
                   </div>
-                )}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Cargar PDF
-                    <input
-                      ref={pdfInputRef}
-                      type="file"
-                      accept="application/pdf,.pdf"
-                      onChange={(event) => setDocumentoPdf(event.target.files?.[0] || null)}
-                      className={`${inputClass} mt-2`}
-                    />
-                  </label>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Escanear con cámara
-                    <input
-                      ref={imageInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      capture="environment"
-                      onChange={(event) => setDocumentoPdf(event.target.files?.[0] || null)}
-                      className={`${inputClass} mt-2`}
-                    />
-                  </label>
-                </div>
-                {documentoPdf && <p className="mt-2 text-sm text-gray-700">Seleccionado: {documentoPdf.name}</p>}
-              </div>
+                  {documentoPdf ? (
+                    <div className="mt-3 flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                      <span>Seleccionado: {documentoPdf.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDocumentoPdf(null);
+                          if (pdfInputRef.current) pdfInputRef.current.value = '';
+                          if (imageInputRef.current) imageInputRef.current.value = '';
+                        }}
+                        className="rounded-lg p-1 hover:bg-emerald-100"
+                        aria-label="Quitar archivo seleccionado"
+                      >
+                        <FiX size={16} />
+                      </button>
+                    </div>
+                  ) : null}
+                </SectionCard>
+              </>
             )}
-            <div className="overflow-hidden rounded-xl border border-gray-200/60 bg-white/95 shadow-lg">
-              <div className="border-b border-gray-200/60 px-5 py-4">
+
+            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <div className="border-b border-gray-100 px-5 py-4">
                 <p className="text-sm font-bold uppercase tracking-wide text-gray-700">Resumen del control de cambios</p>
               </div>
-              <dl className="divide-y divide-gray-200/60">
+              <dl className="divide-y divide-gray-100">
                 {[
                   ...(formData.numero_control ? [['Número de control', formData.numero_control]] : []),
                   ['Sistema', formData.nombre_sistema || '—'],
@@ -803,37 +1004,47 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
 
   if (loading) {
     return (
-      <div className="flex h-48 items-center justify-center">
+      <div className="flex h-56 flex-col items-center justify-center gap-3">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-colorPrimario border-t-transparent" />
+        <p className="text-sm text-gray-500">Cargando control de cambios...</p>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="h-1 flex-1 rounded-full bg-gradient-to-r from-[#8A2036] to-[#BC955B]" />
-          <span className="text-center text-xs font-semibold uppercase tracking-widest text-gray-400">Gestión de cambios</span>
-          <div className="h-1 flex-1 rounded-full bg-gradient-to-r from-[#BC955B] to-[#8A2036]" />
-        </div>
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-xl font-extrabold text-colorPrimario sm:text-2xl">
-              {mode === 'edit' ? `Editar control de cambios #${editId}` : 'Nuevo control de cambios'}
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">Registro y seguimiento de solicitudes de cambio.</p>
-          </div>
-          <p className="text-sm font-semibold text-gray-500">
-            <span className="text-lg text-colorPrimario">{String(currentStep + 1).padStart(2, '0')}</span>
-            <span className="mx-1">/</span>{String(STEPS.length).padStart(2, '0')} pasos
+    <div ref={containerRef} className="mx-auto w-full max-w-6xl">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
+            {mode === 'edit' ? `Editar control${editId ? ` #${editId}` : ''}` : 'Nuevo control'}
           </p>
+          <h2 className="mt-1 text-2xl font-extrabold text-gray-800">Control de cambios</h2>
         </div>
+        {formData.numero_control ? (
+          <span className="inline-flex w-fit items-center rounded-full bg-[#8A2036]/10 px-3 py-1.5 font-mono text-xs font-semibold text-[#8A2036]">
+            {`Número de control: ${formData.numero_control}`}
+          </span>
+        ) : null}
+      </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      {/* <div className="mb-6">
+        <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-400">
+          <span>Paso {currentStep + 1} de {STEPS.length}</span>
+          <span>{solicitudProgress}% solicitud</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${solicitudProgress}%`, backgroundColor: step.color }}
+          />
+        </div>
+      </div> */}
+
+      <div className="mb-8 hidden lg:block">
+        <div className="grid grid-cols-5 gap-2">
           {STEPS.map((s, idx) => {
             const isActive = idx === currentStep;
-            const isCompleted = idx < currentStep;
+            const isDone = idx < currentStep;
             return (
               <button
                 key={s.id}
@@ -842,50 +1053,111 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
                 disabled={submitting}
                 aria-current={isActive ? 'step' : undefined}
                 aria-label={`Paso ${idx + 1}: ${s.label}`}
-                className={`flex min-h-[76px] min-w-0 items-center gap-2 rounded-xl border bg-white px-3 py-3 text-left transition-all sm:min-h-[84px] sm:flex-col sm:justify-center sm:gap-2 sm:text-center ${isActive ? 'shadow-md ring-2 ring-[#8A2036]/15' : isCompleted ? 'border-emerald-200 hover:border-emerald-300' : 'border-gray-200 hover:border-gray-300'}`}
-                style={isActive ? { borderColor: s.color } : undefined}
+                className={`group relative flex min-h-[76px] w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-all duration-300 ${
+                  isActive
+                    ? 'bg-white shadow-lg ring-2 ring-offset-2'
+                    : isDone
+                      ? 'bg-white/80 shadow-md hover:bg-white hover:shadow-lg'
+                      : 'bg-white/40 hover:bg-white/60'
+                }`}
+                style={isActive ? { ringColor: s.color } : undefined}
               >
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${isActive ? 'text-white' : isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`} style={isActive ? { backgroundColor: s.color } : undefined}>
-                  {isCompleted ? <FiCheckCircle size={18} /> : <s.icon size={17} />}
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm font-bold transition-all ${
+                    isActive ? 'text-white shadow-md' : isDone ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'
+                  }`}
+                  style={isActive ? { backgroundColor: s.color } : undefined}
+                >
+                  {isDone ? <FiCheckCircle size={16} /> : idx + 1}
                 </div>
-                <span className={`min-w-0 text-xs font-semibold leading-tight ${isActive ? 'text-gray-900' : isCompleted ? 'text-emerald-700' : 'text-gray-500'}`}>{s.label}</span>
+                <div className="min-w-0">
+                  <span className={`block truncate text-xs font-semibold uppercase tracking-wide ${
+                    isActive ? 'text-gray-800' : isDone ? 'text-gray-700' : 'text-gray-400'
+                  }`}>{s.label}</span>
+                  <span className={`text-[10px] font-medium ${
+                    isActive ? 'text-colorPrimario' : isDone ? 'text-emerald-600' : 'text-gray-400'
+                  }`}>
+                    {isDone ? 'Completado' : isActive ? 'En progreso' : 'Pendiente'}
+                  </span>
+                </div>
               </button>
             );
           })}
         </div>
       </div>
 
-      <section className="space-y-6" aria-labelledby="control-cambio-step-title">
-        <div className="flex items-start gap-4 rounded-xl border-l-4 bg-white/80 p-5 shadow-sm" style={{ borderColor: step.color }}>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100" style={{ color: step.color }}>
-            <step.icon size={20} />
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:hidden">
+        {STEPS.map((s, idx) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => goToStep(idx)}
+            disabled={submitting}
+            className={`min-w-0 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+              idx === currentStep ? 'text-white shadow-md' : idx < currentStep ? 'bg-colorPrimario/20 text-colorPrimario' : 'bg-gray-100 text-gray-400'
+            }`}
+            style={idx === currentStep ? { backgroundColor: s.color } : undefined}
+          >
+            <span className="truncate">{idx < currentStep ? '✓ ' : ''}{idx + 1}. {s.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <section className={`overflow-hidden rounded-3xl border border-white/60 bg-gradient-to-br ${step.bg} shadow-xl`} aria-labelledby="control-cambio-step-title">
+        <div className="flex items-center gap-4 border-b border-white/50 bg-white/40 px-6 py-5 backdrop-blur-sm md:px-8">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg" style={{ backgroundColor: step.color }}>
+            <step.icon size={26} />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Paso {currentStep + 1} de {STEPS.length}</p>
-            <h3 id="control-cambio-step-title" className="mt-1 text-base font-bold text-gray-800">{step.label}</h3>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">
+              Etapa {currentStep + 1} de {STEPS.length}
+            </p>
+            <h3 id="control-cambio-step-title" className="text-2xl font-extrabold text-gray-800">{step.label}</h3>
             <p className="mt-1 text-sm text-gray-600">{step.description}</p>
           </div>
         </div>
-        <div className="space-y-6">{renderStepContent()}</div>
-      </section>
 
-      <div className="mt-8 flex items-center justify-between gap-4">
-        <button type="button" onClick={() => goToStep(currentStep - 1)} disabled={currentStep === 0 || submitting} className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:border-[#8A2036] hover:text-[#8A2036] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-gray-200 disabled:hover:text-gray-600">
-          <FiArrowLeft />
-          Anterior
-        </button>
-        {currentStep === STEPS.length - 1 ? (
-          <button type="button" onClick={handleSubmit} disabled={!canGenerate || submitting} className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-md transition-all ${canGenerate && !submitting ? 'bg-gradient-to-r from-[#8A2036] to-[#a9354c] hover:-translate-y-0.5 hover:shadow-lg' : 'cursor-not-allowed bg-gray-300'}`}>
-            <FiDownload />
-            {submitting ? 'Enviando...' : mode === 'edit' ? 'Actualizar control' : 'Guardar control'}
-          </button>
-        ) : (
-          <button type="button" onClick={() => goToStep(currentStep + 1)} disabled={submitting} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50">
-            {submitting ? 'Guardando...' : 'Siguiente'}
-            <FiArrowRight />
-          </button>
-        )}
-      </div>
+        <div className="bg-white/70 p-6 backdrop-blur-sm md:p-8">
+          {renderStepContent()}
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-white/50 bg-white/50 px-6 py-4 backdrop-blur-sm md:px-8">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              onClick={() => (currentStep === 0 ? navigate('/control-cambios') : goToStep(currentStep - 1))}
+              disabled={submitting}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#BC955B]/60 px-5 py-2.5 text-sm font-semibold text-[#8A2036] transition hover:bg-[#DAC19A]/25 disabled:opacity-50 sm:w-auto"
+            >
+              <FiArrowLeft />
+              {currentStep === 0 ? 'Cancelar' : 'Anterior'}
+            </button>
+
+            {currentStep === STEPS.length - 1 ? (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canGenerate || submitting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-colorPrimario px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600 sm:w-auto"
+              >
+                <FiCheckCircle size={18} className={submitting ? 'animate-pulse' : ''} />
+                {submitting ? 'Enviando...' : mode === 'edit' ? 'Actualizar control' : 'Guardar control'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => goToStep(currentStep + 1)}
+                disabled={submitting}
+                className="inline-flex w-full items-center justify-center gap-1 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:opacity-90 disabled:opacity-50 sm:w-auto"
+                style={{ backgroundColor: step.color }}
+              >
+                {submitting ? 'Guardando...' : 'Guardar y continuar'}
+                <FiChevronRight size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
 
       <SearchModal isOpen={modals.sistema} onClose={() => closeModal('sistema')} title="Buscar sistema" searchFunction={sistemasService.filtrado} onSelect={handleSistemaSelect} labelFormatter={(item) => `${item.siglas ? `${item.siglas} - ` : ''}${item.nombre}`} />
       <SearchModal isOpen={modals.solicitante} onClose={() => closeModal('solicitante')} title="Buscar solicitante" searchFunction={empleadosService.filtrado} onSelect={handlePersonSelect('solicitante_id', 'solicitante_nombre')} labelFormatter={(item) => `${item.nombre || ''} ${item.apellidos || ''}`.trim()} />

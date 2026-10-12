@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { FiDownload, FiSearch, FiPlus, FiEdit, FiLock, FiUnlock, FiFile } from 'react-icons/fi';
+import { FiDownload, FiPlus, FiEdit, FiFile } from 'react-icons/fi';
 import liberacionService, { getDocumentoFilename } from '../../services/liberacionService';
 import { buildLiberacionFichaData, generateLiberacionFichaPdf } from '../../utils/liberacionPdfGenerator';
+import SearchInput from '../common/SearchInput';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -54,10 +55,33 @@ const LiberacionList = () => {
     loadData();
   }, []);
 
-  const filtered = items.filter((item) => {
-    const text = `${item.id || ''} ${item.nombre_sistema || ''} ${item.lider_proyecto || ''} ${item.tipo_liberacion || ''}`.toLowerCase();
-    return text.includes(search.toLowerCase());
-  });
+  const handleSearch = useCallback((term) => {
+    setSearch(term ?? '');
+  }, []);
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return items;
+
+    return items.filter((item) => {
+      const text = [
+        item.id,
+        item.numero_control,
+        item.nombre_sistema,
+        item.lider_proyecto,
+        userName(item.lider_proyecto_data),
+        item.tipo_liberacion,
+        employeeName(item.responsable_infraestructura_data || item.responsable_infraestructura),
+        employeeName(item.responsable_desarrollo_data || item.responsable_desarrollo),
+        Number(item.estatus) === 1 ? 'abierta' : 'cerrada',
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return text.includes(query);
+    });
+  }, [items, search]);
 
   const handleDownload = (item) => {
     const ficha = buildLiberacionFichaData(item);
@@ -84,66 +108,29 @@ const LiberacionList = () => {
     }
   };
 
-  const handleToggleStatus = async (item) => {
-    const nextStatus = Number(item.estatus) === 1 ? 0 : 1;
-    const actionText = nextStatus === 1 ? 'abrir' : 'cerrar';
-
-    const result = await Swal.fire({
-      title: `¿${actionText === 'abrir' ? 'Abrir' : 'Cerrar'} ficha?`,
-      text: `La ficha ${item.id} pasará a estado ${nextStatus === 1 ? 'ABIERTA' : 'CERRADA'}.`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, continuar',
-      cancelButtonText: 'Cancelar',
-    });
-
-    if (!result.isConfirmed) return;
-
-    try {
-      await liberacionService.updateLiberacion(item.id, { estatus: nextStatus });
-      await loadData();
-      Swal.fire({
-        icon: 'success',
-        title: 'Estado actualizado',
-        text: `La ficha quedó en ${nextStatus === 1 ? 'ABIERTA' : 'CERRADA'}.`,
-        timer: 1800,
-        showConfirmButton: false,
-      });
-    } catch (error) {
-      console.error(error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudo actualizar el estatus de la ficha.',
-      });
-    }
-  };
-
   return (
-    <div className="mt-8 rounded-2xl bg-white p-5 shadow-md">
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="mt-8 rounded-2xl border border-[#f3dfe3] bg-white p-5 shadow-[0_18px_45px_rgba(138,32,54,0.08)] ring-1 ring-[#f7e9ea]">
+      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Administración de fichas de liberación</h2>
-          <p className="text-sm text-gray-600">Listado de liberaciones creadas, cerradas y exportables.</p>
+          <p className="mt-1 text-sm text-gray-600">Listado de liberaciones creadas, cerradas y exportables.</p>
+          <p className="mt-2 text-xs font-medium text-[#8A2036]">
+            {search.trim()
+              ? `${filtered.length} de ${items.length} ficha${items.length === 1 ? '' : 's'}`
+              : `${items.length} ficha${items.length === 1 ? '' : 's'}`}
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative w-full md:max-w-sm">
-            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <FiSearch className="text-gray-500" />
-            </span>
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar sistema, líder o tipo"
-              className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
-          </div>
-
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
+          <SearchInput
+            value={search}
+            onChange={handleSearch}
+            placeholder="Buscar por número, sistema, líder, tipo o estatus"
+            className="sm:min-w-[280px] lg:min-w-[320px]"
+          />
           <Link
             to="/fichas-liberacion/registrar"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:brightness-110"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:brightness-110"
           >
             <FiPlus size={16} /> Nueva ficha
           </Link>
@@ -152,47 +139,47 @@ const LiberacionList = () => {
 
       {loading ? (
         <div className="flex h-32 items-center justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#8A2036] border-t-transparent" />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-gradient-to-r from-[#8A2036] to-[#a9354c] text-white">
+        <div className="overflow-x-auto rounded-xl border border-[#f3dfe3]">
+          <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+            <thead className="bg-gradient-to-r from-[#8A2036] via-[#9d2b42] to-[#a7354c] text-xs font-bold uppercase tracking-[0.12em] text-white">
               <tr>
                 <th className="px-3 py-3">ID</th>
-
                 <th className="px-3 py-3">No control</th>
-                {/* <th className="px-3 py-3">Sistema</th> */}
-                {/* <th className="px-3 py-3">Líder</th> */}
                 <th className="px-3 py-3">Tipo</th>
                 <th className="px-3 py-3">Fecha liberación</th>
                 <th className="px-3 py-3">Estatus</th>
-                {/* <th className="px-3 py-3">Infraestructura</th>
-                <th className="px-3 py-3">Desarrollo</th> */}
                 <th className="px-3 py-3 text-center">Acción</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 py-8 text-center text-gray-500">Sin fichas registradas</td>
+                  <td colSpan={6} className="px-3 py-12 text-center">
+                    <p className="font-semibold text-gray-700">
+                      {search.trim() ? 'Sin coincidencias' : 'Sin fichas registradas'}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {search.trim()
+                        ? 'Prueba con otro número de control, sistema, líder o tipo.'
+                        : 'Crea la primera ficha con el botón “Nueva ficha”.'}
+                    </p>
+                  </td>
                 </tr>
               ) : (
                 filtered.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-200 odd:bg-white even:bg-gray-50">
-                    <td className="px-3 py-3 font-semibold">#{item.id}</td>
+                  <tr key={item.id} className="border-b border-[#f5e5e7] odd:bg-white even:bg-[#fffaf8] transition-colors hover:bg-[#fff3f2]">
+                    <td className="px-3 py-3 font-semibold text-[#2e1f22]">#{item.id}</td>
                     <td className="px-3 py-3">{item.numero_control || '—'}</td>
-                    {/* <td className="px-3 py-3">{item.nombre_sistema || '—'}</td> */}
-                    {/* <td className="px-3 py-3">{userName(item.lider_proyecto_data || item.lider_proyecto)}</td> */}
                     <td className="px-3 py-3">{item.tipo_liberacion || '—'}</td>
-                    <td className="px-3 py-3">{fmtDate(item.fecha_liberacion)}</td>
+                    <td className="px-3 py-3 text-gray-600">{fmtDate(item.fecha_liberacion)}</td>
                     <td className="px-3 py-3">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${Number(item.estatus) === 1 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200' : 'bg-stone-100 text-stone-700 ring-1 ring-inset ring-stone-200'}`}>
                         {Number(item.estatus) === 1 ? 'ABIERTA' : 'CERRADA'}
                       </span>
                     </td>
-                    {/* <td className="px-3 py-3">{employeeName(item.responsable_infraestructura_data || item.responsable_infraestructura)}</td>
-                    <td className="px-3 py-3">{employeeName(item.responsable_desarrollo_data || item.responsable_desarrollo)}</td> */}
                     <td className="px-3 py-3 text-center">
                       <div className="flex flex-wrap justify-center gap-2">
                         <Link
@@ -201,21 +188,10 @@ const LiberacionList = () => {
                           title="Editar ficha"
                         >
                           <FiEdit size={16} />
-                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                          <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
                             Editar
                           </span>
                         </Link>
-                        {/* <button
-                          type="button"
-                          onClick={() => handleToggleStatus(item)}
-                          className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-amber-600/30 bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white"
-                          title={Number(item.estatus) === 1 ? 'Cerrar ficha' : 'Abrir ficha'}
-                        >
-                          {Number(item.estatus) === 1 ? <FiLock size={16} /> : <FiUnlock size={16} />}
-                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
-                            {Number(item.estatus) === 1 ? 'Cerrar' : 'Abrir'}
-                          </span>
-                        </button> */}
                         <button
                           type="button"
                           onClick={() => handleDownload(item)}
@@ -223,7 +199,7 @@ const LiberacionList = () => {
                           title="Descargar PDF de ficha"
                         >
                           <FiDownload size={16} />
-                          <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                          <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
                             PDF Ficha
                           </span>
                         </button>
@@ -235,7 +211,7 @@ const LiberacionList = () => {
                             title="Descargar documento adjunto"
                           >
                             <FiFile size={16} />
-                            <span className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                            <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
                               Adjunto
                             </span>
                           </button>

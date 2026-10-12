@@ -2,7 +2,29 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import jsPDF from 'jspdf';
-import { FiDownload, FiLayers, FiShield, FiCheckCircle, FiClipboard, FiActivity, FiSearch, FiArrowLeft, FiArrowRight, FiEye, FiLock, FiUnlock } from 'react-icons/fi';
+import {
+  FiDownload,
+  FiLayers,
+  FiCheckCircle,
+  FiClipboard,
+  FiActivity,
+  FiSearch,
+  FiArrowLeft,
+  FiEye,
+  FiLock,
+  FiUnlock,
+  FiAlertCircle,
+  FiCalendar,
+  FiUser,
+  FiServer,
+  FiChevronRight,
+  FiFileText,
+  FiCamera,
+  FiCode,
+  FiDatabase,
+  FiSettings,
+  FiX,
+} from 'react-icons/fi';
 import liberacionService, { getDocumentoFilename } from '../../services/liberacionService';
 import empleadosService from '../../services/empleadosService';
 import usersService from '../../services/usersService';
@@ -47,11 +69,94 @@ const STEPS = [
   { id: 'entregables', label: 'Entregables', description: 'Define qué componentes y rutas forman parte de la liberación.', icon: FiLayers, color: '#1f7a8c', bg: 'from-[#1f7a8c]/10 to-teal-50' },
   { id: 'validaciones', label: 'Validaciones', description: 'Registra el resultado de las pruebas y la validación funcional.', icon: FiCheckCircle, color: '#0f766e', bg: 'from-emerald-100/80 to-teal-50' },
   { id: 'firmas', label: 'Firmas', description: 'Selecciona a los responsables de recepción y entrega técnica.', icon: FiActivity, color: '#BC955B', bg: 'from-[#DAC19A]/30 to-[#BC955B]/10' },
-  { id: 'generar', label: 'Generar', description: 'Revisa el resumen final y descarga la ficha en PDF.', icon: FiDownload, color: '#8A2036', bg: 'from-[#8A2036]/10 to-[#BC955B]/5' },
+  { id: 'generar', label: 'Revisión', description: 'Confirma el resumen y guarda la ficha de liberación.', icon: FiDownload, color: '#8A2036', bg: 'from-[#8A2036]/10 to-[#BC955B]/5' },
 ];
 
-const inputClass = 'w-full rounded-lg border border-gray-300 bg-white/95 px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#8A2036] focus:outline-none focus:ring-2 focus:ring-[#8A2036]/20 transition-all shadow-sm';
-const labelClass = 'block text-sm font-semibold text-gray-800 mb-2 tracking-tight';
+const ENTREGABLES = [
+  { label: 'Frontend', include: 'Archivos compilados / proyecto frontend', routeKey: 'f_ruta', statusKey: 'entregable_frontend_estado', icon: FiCode },
+  { label: 'Backend', include: 'API / servicios / lógica de negocio', routeKey: 'b_ruta', statusKey: 'entregable_backend_estado', icon: FiServer },
+  { label: 'Base de Datos', include: 'Scripts SQL / migraciones', routeKey: 'bd_ruta', statusKey: 'entregable_bd_estado', icon: FiDatabase },
+  { label: 'Variables de entorno', include: 'Variables .env o plantilla necesarias para la operación.', routeKey: 'var_entorno', statusKey: 'entregable_variables_estado', icon: FiSettings },
+];
+
+const VALIDACIONES = [
+  { title: 'Pruebas funcionales', responsible: 'Desarrollo', resultKey: 'validacion_pruebas_resultado' },
+  { title: 'Validación funcional del usuario solicitante', responsible: 'Área usuaria', resultKey: 'validacion_acceso_resultado' },
+];
+
+const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 shadow-sm transition-all focus:border-[#8A2036] focus:outline-none focus:ring-2 focus:ring-[#8A2036]/20';
+const labelClass = 'mb-2 block text-sm font-semibold tracking-tight text-gray-800';
+
+const FieldLabel = ({ children, required, htmlFor }) => (
+  <label htmlFor={htmlFor} className={labelClass}>
+    {children}
+    {required ? <span className="ml-1 text-[#8A2036]">*</span> : null}
+  </label>
+);
+
+const SearchPicker = ({ label, required, value, filled, placeholder, onOpen, hint }) => {
+  const isFilled = filled ?? Boolean(value);
+  return (
+  <div>
+    {label ? <FieldLabel required={required}>{label}</FieldLabel> : null}
+    <div className="relative">
+      <input
+        type="text"
+        value={value}
+        readOnly
+        placeholder={placeholder}
+        onClick={onOpen}
+        className={`${inputClass} cursor-pointer pr-12 ${isFilled ? 'border-emerald-200 bg-emerald-50/70' : 'bg-gray-50'}`}
+      />
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={label ? `Buscar ${label}` : 'Buscar'}
+        className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 transition-all ${
+          isFilled ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+        }`}
+      >
+        <FiSearch size={18} />
+      </button>
+    </div>
+    {hint ? <p className="mt-2 text-xs leading-relaxed text-gray-500">{hint}</p> : null}
+  </div>
+  );
+};
+
+const ChoiceButton = ({ selected, onClick, title, description, accent = '#8A2036' }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-pressed={selected}
+    className={`relative w-full rounded-2xl border-2 p-4 text-left transition-all duration-200 ${
+      selected
+        ? 'bg-white shadow-md ring-2 ring-offset-1'
+        : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white'
+    }`}
+    style={selected ? { borderColor: accent, ringColor: `${accent}4D` } : undefined}
+  >
+    {selected ? (
+      <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full text-white" style={{ backgroundColor: accent }}>
+        <FiCheckCircle size={12} />
+      </span>
+    ) : null}
+    <span className="block font-bold text-gray-800">{title}</span>
+    {description ? <span className="mt-1 block text-xs text-gray-500">{description}</span> : null}
+  </button>
+);
+
+const SectionCard = ({ icon: Icon, title, children }) => (
+  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+    {title ? (
+      <div className="mb-4 flex items-center gap-2 text-[#8A2036]">
+        {Icon ? <Icon size={18} /> : null}
+        <span className="text-sm font-bold uppercase tracking-wide">{title}</span>
+      </div>
+    ) : null}
+    {children}
+  </div>
+);
 
 const preparePdfDocument = async (file) => {
   if (!file) return null;
@@ -97,10 +202,6 @@ const userDisplayName = (user) => {
   return [user.name, user.ap_paterno, user.ap_materno].filter(Boolean).join(' ').trim();
 };
 
-const fieldConfig = [
-  { key: 'lider_proyecto', label: 'Líder del proyecto', icon: FiShield, type: 'text', placeholder: 'Nombre del responsable' },
-];
-
 const LiberacionForm = ({ mode = 'create', editId = null }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState(initialForm);
@@ -116,7 +217,6 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
   const [documentoPreview, setDocumentoPreview] = useState(null);
   const [loadingDocumentoPreview, setLoadingDocumentoPreview] = useState(false);
 
-  // Estado para modales de búsqueda de empleados
   const [modals, setModals] = useState({
     lider_proyecto: false,
     sistema: false,
@@ -189,7 +289,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
       setLoading(true);
       const response = await liberacionService.getLiberacionById(id);
       const data = response?.data || response;
-      
+
       const employeeName = (emp) => {
         if (!emp) return '';
         if (typeof emp === 'string') return emp;
@@ -236,19 +336,27 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
     }
   };
 
-  const canGenerate = useMemo(() => {
-    return Boolean(
-      formData.fecha_solicitud
-      && formData.fecha_liberacion
-      && formData.lider_proyecto
-      && formData.sistema_id
-      && formData.nombre_sistema
-      && formData.version
-      && formData.tipo_liberacion
-      && formData.prioridad
-      && (formData.ambiente_pruebas || formData.ambiente_produccion),
-    );
+  const missingIdentification = useMemo(() => {
+    const missing = [];
+    if (!formData.fecha_solicitud) missing.push('Fecha de solicitud');
+    if (!formData.fecha_liberacion) missing.push('Fecha de liberación');
+    if (!formData.lider_proyecto) missing.push('Líder del proyecto');
+    if (!formData.sistema_id) missing.push('Sistema del catálogo');
+    if (!formData.nombre_sistema) missing.push('Nombre del sistema');
+    if (!formData.version) missing.push('Versión');
+    if (!formData.tipo_liberacion) missing.push('Tipo de liberación');
+    if (!formData.prioridad) missing.push('Prioridad');
+    if (!formData.ambiente_pruebas && !formData.ambiente_produccion) missing.push('Ambiente');
+    return missing;
   }, [formData]);
+
+  const canGenerate = missingIdentification.length === 0;
+
+  const identificationProgress = useMemo(() => {
+    const total = 9;
+    const filled = total - missingIdentification.length;
+    return Math.max(0, Math.min(100, Math.round((filled / total) * 100)));
+  }, [missingIdentification]);
 
   const saveProgress = async () => {
     if (submitLockRef.current) return false;
@@ -316,7 +424,6 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
     if (await saveProgress()) setCurrentStep(idx);
   };
   const step = STEPS[currentStep];
-  const focusRing = { '--tw-ring-color': step.color };
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -387,248 +494,249 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
       case 'generales':
         return (
           <div className="space-y-6">
-            <div className="flex items-start gap-4 rounded-xl border-l-4 border-[#8A2036] bg-white/80 p-5 shadow-sm">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#8A2036] to-[#a9354c] text-white shadow-lg">
-                <FiClipboard size={20} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-800 tracking-tight">Datos generales</p>
-                <p className="mt-1 text-sm text-gray-600">Información básica de la liberación.</p>
-              </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <SectionCard icon={FiCalendar} title="Fechas">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <FieldLabel required>Fecha solicitud</FieldLabel>
+                    <input type="date" name="fecha_solicitud" value={formData.fecha_solicitud} onChange={handleChange} className={inputClass} />
+                  </div>
+                  <div>
+                    <FieldLabel required>Fecha liberación</FieldLabel>
+                    <input type="date" name="fecha_liberacion" value={formData.fecha_liberacion} onChange={handleChange} className={inputClass} />
+                  </div>
+                </div>
+              </SectionCard>
+
+              <SectionCard icon={FiUser} title="Responsable">
+                <SearchPicker
+                  label="Líder del proyecto"
+                  required
+                  value={formData.lider_proyecto}
+                  placeholder="Buscar empleado..."
+                  onOpen={() => openModal('lider_proyecto')}
+                />
+              </SectionCard>
             </div>
-            <div className="rounded-xl border border-gray-200/60 bg-white/95 p-6 shadow-lg backdrop-blur-sm">
-              <div className="grid gap-5 md:grid-cols-2">
+
+            <SectionCard icon={FiServer} title="Sistema">
+              <div className="grid gap-4 md:grid-cols-2">
+                <SearchPicker
+                  label="Sistema del catálogo"
+                  required
+                  value={formData.nombre_sistema}
+                  placeholder="Buscar sistema..."
+                  onOpen={() => openModal('sistema')}
+                  filled={Boolean(formData.sistema_id)}
+                  hint="La selección del catálogo asigna las siglas para generar el número de control."
+                />
                 <div>
-                  <label className={labelClass}>Fecha solicitud</label>
-                  <input type="date" name="fecha_solicitud" value={formData.fecha_solicitud} onChange={handleChange} className={inputClass} style={focusRing} />
-                </div>
-                <div>
-                  <label className={labelClass}>Fecha liberación</label>
-                  <input type="date" name="fecha_liberacion" value={formData.fecha_liberacion} onChange={handleChange} className={inputClass} style={focusRing} />
-                </div>
-                {fieldConfig.map(({ key, label, type, placeholder }) => (
-                  <div key={key} className={key === 'version' ? 'md:col-span-2' : ''}>
-                    {key === 'lider_proyecto' ? (
-                      <>
-                        <label className={labelClass}>{label}</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={formData.lider_proyecto}
-                            readOnly
-                            placeholder="Buscar empleado..."
-                            className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-800 focus:border-[#8A2036] focus:outline-none focus:ring-2 focus:ring-[#8A2036]/20 transition-all shadow-sm cursor-pointer"
-                            onClick={() => openModal('lider_proyecto')}
-                            style={focusRing}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => openModal('lider_proyecto')}
-                            className="rounded-lg bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-4 py-3 text-white transition-all hover:brightness-110 shadow-md"
-                          >
-                            <FiSearch size={18} />
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <label className={labelClass}>{label}</label>
-                        <input
-                          type={type}
-                          name={key}
-                          value={formData[key]}
-                          onChange={handleChange}
-                          placeholder={placeholder}
-                          readOnly={key === 'version' && Boolean(formData.sistema_id)}
-                          className={inputClass}
-                          style={focusRing}
-                        />
-                      </>
-                    )}
-                  </div>
-                ))}
-                {formData.numero_control && (
-                  <div className="md:col-span-2">
-                    <label className={labelClass}>Número de control</label>
-                    <input type="text" value={formData.numero_control} readOnly className={`${inputClass} bg-gray-50`} />
-                  </div>
-                )}
-                <div className="md:col-span-2">
-                  <label className={labelClass}>Sistema del catálogo</label>
-                  <div className="flex gap-2">
-                    <input type="text" value={formData.nombre_sistema} readOnly placeholder="Buscar sistema..." className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-800 shadow-sm" onClick={() => openModal('sistema')} />
-                    <button type="button" onClick={() => openModal('sistema')} className="rounded-lg bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-4 py-3 text-white shadow-md"><FiSearch size={18} /></button>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-500">La selección del catálogo asigna las siglas para generar el número de control.</p>
+                  <FieldLabel required>Nombre del sistema</FieldLabel>
+                  <input
+                    type="text"
+                    name="nombre_sistema"
+                    value={formData.nombre_sistema}
+                    onChange={handleChange}
+                    placeholder="Nombre del sistema"
+                    className={inputClass}
+                  />
                 </div>
                 <div className="md:col-span-2">
-                  <label className={labelClass}>Nombre del sistema</label>
-                  <input type="text" name="nombre_sistema" value={formData.nombre_sistema} onChange={handleChange} placeholder="Nombre del sistema" className={inputClass} style={focusRing} />
-                </div>
-                <div className="md:col-span-2">
-                  <label className={labelClass}>Versión</label>
-                  <input type="text" name="version" value={formData.version} onChange={handleChange} placeholder="Ej. 1.0.0" readOnly={Boolean(formData.sistema_id)} className={inputClass} style={focusRing} />
+                  <FieldLabel required>Versión</FieldLabel>
+                  <input
+                    type="text"
+                    name="version"
+                    value={formData.version}
+                    onChange={handleChange}
+                    placeholder="Ej. 1.0.0"
+                    readOnly={Boolean(formData.sistema_id)}
+                    className={`${inputClass} ${formData.sistema_id ? 'bg-gray-50' : ''}`}
+                  />
+                  {formData.sistema_id ? (
+                    <p className="mt-2 text-xs text-gray-500">La versión se toma del catálogo. Cambia el sistema si necesitas otra versión.</p>
+                  ) : null}
                 </div>
               </div>
-            </div>
-            <div className="grid gap-5 md:grid-cols-3">
-              <fieldset className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
-                <legend className="px-1 text-sm font-bold text-gray-800">Ambiente</legend>
-                {[
-                  ['ambiente_pruebas', 'Pruebas'],
-                  ['ambiente_produccion', 'Producción'],
-                ].map(([name, label]) => (
-                  <label key={name} className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                    <input type="checkbox" name={name} checked={formData[name]} onChange={handleChange} className="h-4 w-4 accent-[#8A2036]" />
-                    {label}
-                  </label>
-                ))}
-              </fieldset>
-              {[
-                ['tipo_liberacion', 'Tipo de Liberación', ['Nueva versión', 'Corrección', 'Mejora']],
-                ['prioridad', 'Prioridad', ['Alta', 'Media', 'Baja']],
-              ].map(([name, title, options]) => (
-                <fieldset key={name} className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
-                  <legend className="px-1 text-sm font-bold text-gray-800">{title}</legend>
-                  {options.map((option) => (
-                    <label key={option} className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                      <input type="radio" name={name} value={option} checked={formData[name] === option} onChange={handleChange} className="h-4 w-4 accent-[#8A2036]" />
-                      {option}
-                    </label>
+            </SectionCard>
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              <SectionCard title="Ambiente">
+                <p className="mb-3 text-xs text-gray-500">Selecciona al menos uno. *</p>
+                <div className="space-y-3">
+                  <ChoiceButton
+                    selected={formData.ambiente_pruebas}
+                    onClick={() => setFormData((prev) => ({ ...prev, ambiente_pruebas: !prev.ambiente_pruebas }))}
+                    title="Pruebas"
+                    description="Ambiente de validación previa"
+                  />
+                  <ChoiceButton
+                    selected={formData.ambiente_produccion}
+                    onClick={() => setFormData((prev) => ({ ...prev, ambiente_produccion: !prev.ambiente_produccion }))}
+                    title="Producción"
+                    description="Ambiente operativo"
+                    accent="#0f766e"
+                  />
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Tipo de liberación">
+                <div className="space-y-3">
+                  {[
+                    ['Nueva versión', 'Entrega completa o incremento'],
+                    ['Corrección', 'Ajuste de incidencias'],
+                    ['Mejora', 'Optimización o nueva función'],
+                  ].map(([option, description]) => (
+                    <ChoiceButton
+                      key={option}
+                      selected={formData.tipo_liberacion === option}
+                      onClick={() => setFormData((prev) => ({ ...prev, tipo_liberacion: option }))}
+                      title={option}
+                      description={description}
+                    />
                   ))}
-                </fieldset>
-              ))}
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Prioridad">
+                <div className="space-y-3">
+                  {[
+                    ['Alta', 'Atención inmediata', '#b91c1c'],
+                    ['Media', 'Programada', '#b45309'],
+                    ['Baja', 'Puede esperar', '#0369a1'],
+                  ].map(([option, description, accent]) => (
+                    <ChoiceButton
+                      key={option}
+                      selected={formData.prioridad === option}
+                      onClick={() => setFormData((prev) => ({ ...prev, prioridad: option }))}
+                      title={option}
+                      description={description}
+                      accent={accent}
+                    />
+                  ))}
+                </div>
+              </SectionCard>
             </div>
           </div>
         );
 
       case 'entregables':
         return (
-          <div className="space-y-6">
-            <div className="flex items-start gap-4 rounded-xl border-l-4 border-[#6b46c1] bg-white/80 p-5 shadow-sm">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#6b46c1] to-violet-600 text-white shadow-lg">
-                <FiLayers size={20} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-800 tracking-tight">Entregables</p>
-                <p className="mt-1 text-sm text-gray-600">Indica el archivo o la ruta y si cada componente aplica a la entrega.</p>
-              </div>
-            </div>
-            <div className="overflow-x-auto rounded-xl border border-gray-200/60 bg-white/95 shadow-sm">
-              <table className="w-full min-w-[760px] border-collapse text-sm">
-                <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-700">
-                  <tr>
-                    <th rowSpan="2" className="border-b border-r border-gray-200 px-3 py-3 text-left">Entregable</th>
-                    <th rowSpan="2" className="border-b border-r border-gray-200 px-3 py-3 text-left">Incluye</th>
-                    <th rowSpan="2" className="border-b border-r border-gray-200 px-3 py-3 text-left">Ruta/Archivo</th>
-                    <th colSpan="2" className="border-b border-gray-200 px-3 py-2 text-center">Entregado</th>
-                  </tr>
-                  <tr>
-                    <th className="border-r border-gray-200 px-3 py-2 text-center">Aplica</th>
-                    <th className="px-3 py-2 text-center">No aplica</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ['Frontend', 'Archivos compilados / proyecto frontend', 'f_ruta', 'entregable_frontend_estado'],
-                    ['Backend', 'API / servicios / lógica de negocio', 'b_ruta', 'entregable_backend_estado'],
-                    ['Base de Datos', 'Scripts SQL / migraciones', 'bd_ruta', 'entregable_bd_estado'],
-                    ['Variables de entorno', 'Variables .env o plantilla de variables necesarias para la operación del sistema.', 'var_entorno', 'entregable_variables_estado'],
-                  ].map(([label, include, routeKey, statusKey]) => (
-                    <tr key={label} className="border-t border-gray-200 text-gray-700">
-                      <th scope="row" className="px-3 py-3 text-left font-semibold text-gray-800">{label}</th>
-                      <td className="max-w-[260px] px-3 py-3 leading-snug">{include}</td>
-                      <td className="px-3 py-3">
-                        <input type="text" name={routeKey} value={formData[routeKey]} onChange={handleChange} className={inputClass} />
-                      </td>
-                      {['aplica', 'no_aplica'].map((value) => (
-                        <td key={value} className="text-center">
-                          <input type="radio" name={statusKey} value={value} checked={formData[statusKey] === value} onChange={handleChange} aria-label={`${label}: ${value === 'aplica' ? 'Aplica' : 'No aplica'}`} className="h-4 w-4 accent-[#8A2036]" />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {ENTREGABLES.map(({ label, include, routeKey, statusKey, icon: Icon }) => {
+              const status = formData[statusKey];
+              return (
+                <div key={statusKey} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="mb-4 flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1f7a8c]/10 text-[#1f7a8c]">
+                      <Icon size={18} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800">{label}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-gray-500">{include}</p>
+                    </div>
+                  </div>
+                  <FieldLabel htmlFor={routeKey}>Ruta o archivo</FieldLabel>
+                  <input
+                    id={routeKey}
+                    type="text"
+                    name={routeKey}
+                    value={formData[routeKey]}
+                    onChange={handleChange}
+                    placeholder="Ruta, repositorio o nombre de archivo"
+                    className={inputClass}
+                  />
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    {[
+                      ['aplica', 'Aplica'],
+                      ['no_aplica', 'No aplica'],
+                    ].map(([value, text]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, [statusKey]: value }))}
+                        className={`rounded-xl border-2 px-3 py-2.5 text-sm font-semibold transition ${
+                          status === value
+                            ? value === 'aplica'
+                              ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                              : 'border-stone-400 bg-stone-100 text-stone-700'
+                            : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
+                        }`}
+                      >
+                        {text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         );
 
       case 'validaciones':
         return (
           <div className="space-y-6">
-            <div className="flex items-start gap-4 rounded-xl border-l-4 border-[#0f766e] bg-white/80 p-5 shadow-sm">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#0f766e] to-teal-600 text-white shadow-lg">
-                <FiCheckCircle size={20} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-800 tracking-tight">Validación</p>
-                <p className="mt-1 text-sm text-gray-600">Registra el resultado de las pruebas y la validación funcional del usuario solicitante.</p>
-              </div>
-            </div>
-            <div className="overflow-x-auto rounded-xl border border-gray-200/60 bg-white/95 shadow-sm">
-              <table className="w-full min-w-[760px] border-collapse text-sm">
-                <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-700">
-                  <tr>
-                    <th rowSpan="2" className="border-b border-r border-gray-200 px-3 py-3 text-left">Validación</th>
-                    <th rowSpan="2" className="border-b border-r border-gray-200 px-3 py-3 text-left">Responsable</th>
-                    <th colSpan="3" className="border-b border-gray-200 px-3 py-2 text-center">Resultado</th>
-                  </tr>
-                  <tr>
-                    {['Correcto', 'Error', 'No aplica'].map((result) => <th key={result} className="border-r border-gray-200 px-3 py-2 text-center last:border-r-0">{result}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ['Pruebas funcionales', 'Desarrollo', 'validacion_pruebas_resultado'],
-                    ['Validación funcional del usuario solicitante', 'Área usuaria', 'validacion_acceso_resultado'],
-                  ].map(([title, responsible, resultKey]) => (
-                    <tr key={title} className="border-t border-gray-200 text-gray-700">
-                      <th scope="row" className="px-3 py-3 text-left font-medium">{title}</th>
-                      <td className="border-l border-gray-200 px-3 py-3">{responsible}</td>
-                      {['Correcto', 'Error', 'No aplica'].map((result) => (
-                        <td key={result} className="border-l border-gray-200 text-center">
-                          <input type="radio" name={resultKey} value={result} checked={formData[resultKey] === result} onChange={handleChange} aria-label={`${title}: ${result}`} className="h-4 w-4 accent-[#8A2036]" />
-                        </td>
+            <div className="grid gap-4 md:grid-cols-2">
+              {VALIDACIONES.map(({ title, responsible, resultKey }) => {
+                const current = formData[resultKey];
+                return (
+                  <div key={resultKey} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <p className="font-bold text-gray-800">{title}</p>
+                    <p className="mt-1 text-xs text-gray-500">Responsable: {responsible}</p>
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      {[
+                        ['Correcto', 'border-emerald-600 bg-emerald-50 text-emerald-800'],
+                        ['Error', 'border-rose-600 bg-rose-50 text-rose-800'],
+                        ['No aplica', 'border-stone-400 bg-stone-100 text-stone-700'],
+                      ].map(([result, selectedClass]) => (
+                        <button
+                          key={result}
+                          type="button"
+                          onClick={() => setFormData((prev) => ({ ...prev, [resultKey]: result }))}
+                          className={`rounded-xl border-2 px-2 py-3 text-center text-xs font-bold transition sm:text-sm ${
+                            current === result ? selectedClass : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
+                          }`}
+                        >
+                          {result}
+                        </button>
                       ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
-              <label className={labelClass}>Observaciones</label>
-              <textarea name="observaciones_finales" value={formData.observaciones_finales} onChange={handleChange} rows={4} className={inputClass} />
-            </div>
+            <SectionCard icon={FiFileText} title="Observaciones">
+              <textarea
+                name="observaciones_finales"
+                value={formData.observaciones_finales}
+                onChange={handleChange}
+                rows={4}
+                placeholder="Hallazgos, restricciones o notas que deban quedar en la ficha."
+                className={inputClass}
+              />
+            </SectionCard>
           </div>
         );
 
       case 'firmas':
         return (
-          <div className="space-y-6">
-            <div className="flex items-start gap-4 rounded-xl border-l-4 border-[#BC955B] bg-white/80 p-5 shadow-sm">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#BC955B] to-[#DAC19A] text-white shadow-lg">
-                <FiActivity size={20} />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-800 tracking-tight">Firmas de entrega</p>
-                <p className="mt-1 text-sm text-gray-600">Selecciona a los responsables y edita los cargos que aparecerán en el formato.</p>
-              </div>
-            </div>
-            <div className="grid gap-5 md:grid-cols-2">
-              {[
-                ['Responsable de Recepción y Publicación', 'responsable_infraestructura', 'responsable_infraestructura', 'cargo_infraestructura'],
-                ['Responsable de Entrega Técnica', 'responsable_desarrollo', 'responsable_desarrollo', 'cargo_desarrollo'],
-              ].map(([title, modal, field, cargoField]) => (
-                <div key={field} className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
-                  <label className={labelClass}>{title}</label>
-                  <div className="flex gap-2">
-                    <input type="text" value={formData[field]} readOnly placeholder="Buscar empleado..." className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-800 cursor-pointer" onClick={() => openModal(modal)} />
-                    <button type="button" onClick={() => openModal(modal)} aria-label={`Buscar ${title}`} className="rounded-lg bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-4 py-3 text-white shadow-md">
-                      <FiSearch size={18} />
-                    </button>
-                  </div>
-                  <label className={`${labelClass} mt-4`} htmlFor={cargoField}>Cargo para el PDF</label>
+          <div className="grid gap-5 md:grid-cols-2">
+            {[
+              ['Responsable de recepción y publicación', 'responsable_infraestructura', 'cargo_infraestructura', 'Selecciona a quien publica y recibe la liberación.'],
+              ['Responsable de entrega técnica', 'responsable_desarrollo', 'cargo_desarrollo', 'Selecciona a quien entrega el desarrollo.'],
+            ].map(([title, field, cargoField, hint]) => (
+              <div key={field} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <div className="mb-4 flex items-center gap-2 text-[#BC955B]">
+                  <FiUser size={18} />
+                  <span className="text-sm font-bold uppercase tracking-wide text-[#8A2036]">{title}</span>
+                </div>
+                <SearchPicker
+                  value={formData[field]}
+                  placeholder="Buscar empleado..."
+                  onOpen={() => openModal(field)}
+                  hint={hint}
+                />
+                <div className="mt-4">
+                  <FieldLabel htmlFor={cargoField}>Cargo para el PDF</FieldLabel>
                   <input
                     id={cargoField}
                     type="text"
@@ -637,48 +745,50 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                     onChange={handleChange}
                     placeholder="Cargo"
                     className={inputClass}
-                    style={focusRing}
                   />
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         );
 
       case 'generar':
         return (
           <div className="space-y-6">
-            <div className="flex items-start gap-4 rounded-xl border-l-4 border-[#8A2036] bg-white/80 p-5 shadow-sm">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#8A2036] to-[#a9354c] text-white shadow-lg">
-                <FiDownload size={20} />
+            {!canGenerate ? (
+              <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <FiAlertCircle className="mt-0.5 shrink-0" size={18} />
+                <div>
+                  <p className="font-semibold">Faltan datos de identificación</p>
+                  <p className="mt-1 text-amber-800">{missingIdentification.join(' · ')}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-gray-800 tracking-tight">Generar ficha</p>
-                <p className="mt-1 text-sm text-gray-600">Revisa el resumen y genera la ficha de liberación en PDF.</p>
+            ) : (
+              <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                <FiCheckCircle className="mt-0.5 shrink-0" size={18} />
+                <p>La identificación está completa. Revisa el resumen antes de guardar.</p>
               </div>
-            </div>
+            )}
+
             {mode === 'edit' && (
               <>
-                <div className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
-                  <p className={labelClass}>Estado de la ficha</p>
-                  <p className="mb-3 text-sm text-gray-600">Elige si la ficha quedará abierta o cerrada al guardar.</p>
+                <SectionCard title="Estado de la ficha">
+                  <p className="mb-3 text-sm text-gray-600">Define si la ficha quedará abierta o cerrada al guardar.</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {[
-                      { value: 1, label: 'Abierta', description: 'La ficha podrá seguir actualizándose.', selected: 'border-emerald-600 bg-emerald-50 text-emerald-800' },
-                      { value: 0, label: 'Cerrada', description: 'La ficha quedará marcada como cerrada.', selected: 'border-stone-500 bg-stone-100 text-stone-800' },
-                    ].map(({ value, label, description, selected }) => (
+                      { value: 1, label: 'Abierta', description: 'Podrá seguir actualizándose.', icon: FiUnlock, selected: 'border-emerald-600 bg-emerald-50 text-emerald-800' },
+                      { value: 0, label: 'Cerrada', description: 'Quedará marcada como cerrada.', icon: FiLock, selected: 'border-stone-500 bg-stone-100 text-stone-800' },
+                    ].map(({ value, label, description, icon: Icon, selected }) => (
                       <button
                         key={value}
                         type="button"
                         aria-pressed={Number(formData.estatus) === value}
                         onClick={() => setFormData((prev) => ({ ...prev, estatus: value }))}
-                        className={`flex items-center gap-3 rounded-xl border-2 p-4 text-left transition ${
-                          Number(formData.estatus) === value
-                            ? selected
-                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                        className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-left transition ${
+                          Number(formData.estatus) === value ? selected : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                         }`}
                       >
-                        {value === 1 ? <FiUnlock size={20} /> : <FiLock size={20} />}
+                        <Icon size={20} />
                         <span>
                           <span className="block font-bold">{label}</span>
                           <span className="mt-1 block text-xs">{description}</span>
@@ -686,18 +796,18 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                       </button>
                     ))}
                   </div>
-                </div>
-                <div className="rounded-xl border border-gray-200/60 bg-white/95 p-5 shadow-sm">
-                  <p className={labelClass}>Documento de respaldo (opcional)</p>
-                  <p className="mb-3 text-sm text-gray-600">
+                </SectionCard>
+
+                <SectionCard icon={FiFileText} title="Documento de respaldo">
+                  <p className="mb-4 text-sm text-gray-600">
                     Visualiza el documento guardado o elige un PDF para sustituirlo. También puedes capturar una imagen; se convertirá a PDF al guardar.
-                    {formData.tiene_documento_pdf && !documentoPdf && ' El archivo actual se conservará si no lo reemplazas.'}
+                    {formData.tiene_documento_pdf && !documentoPdf ? ' El archivo actual se conservará si no lo reemplazas.' : ''}
                   </p>
                   {loadingDocumentoPreview && (
                     <div className="mb-4 flex h-20 items-center justify-center text-sm text-gray-500">Cargando vista previa...</div>
                   )}
                   {documentoPreview && (
-                    <div className="mb-4 overflow-hidden rounded-lg border border-gray-200">
+                    <div className="mb-4 overflow-hidden rounded-xl border border-gray-200">
                       <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700">
                         <FiEye size={16} />
                         Vista previa {documentoPdf ? 'del archivo seleccionado' : 'del documento guardado'}
@@ -712,70 +822,84 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                         )}
                       </div>
                       {documentoPreview.type.startsWith('image/') ? (
-                        <img src={documentoPreview.url} alt="Vista previa del documento escaneado" className="mx-auto max-h-[600px] w-full object-contain bg-gray-100" />
+                        <img src={documentoPreview.url} alt="Vista previa del documento escaneado" className="mx-auto max-h-[600px] w-full bg-gray-100 object-contain" />
                       ) : (
-                        <iframe
-                          title="Vista previa del documento PDF"
-                          src={documentoPreview.url}
-                          className="h-[600px] w-full"
-                        />
+                        <iframe title="Vista previa del documento PDF" src={documentoPreview.url} className="h-[600px] w-full" />
                       )}
                     </div>
                   )}
                   <div className="grid gap-4 md:grid-cols-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Cargar PDF
+                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition hover:border-[#8A2036]/40 hover:bg-[#8A2036]/5">
+                      <FiFileText className="mb-2 text-[#8A2036]" size={22} />
+                      <span className="text-sm font-semibold text-gray-800">Cargar PDF</span>
+                      <span className="mt-1 text-xs text-gray-500">Selecciona un archivo .pdf</span>
                       <input
                         ref={documentoPdfInputRef}
                         type="file"
                         accept="application/pdf,.pdf"
                         onChange={(event) => setDocumentoPdf(event.target.files?.[0] || null)}
-                        className={`${inputClass} mt-2`}
+                        className="sr-only"
                       />
                     </label>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Escanear con cámara
+                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition hover:border-[#8A2036]/40 hover:bg-[#8A2036]/5">
+                      <FiCamera className="mb-2 text-[#8A2036]" size={22} />
+                      <span className="text-sm font-semibold text-gray-800">Escanear con cámara</span>
+                      <span className="mt-1 text-xs text-gray-500">JPEG, PNG o WEBP</span>
                       <input
                         ref={documentoImagenInputRef}
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                         capture="environment"
                         onChange={(event) => setDocumentoPdf(event.target.files?.[0] || null)}
-                        className={`${inputClass} mt-2`}
+                        className="sr-only"
                       />
                     </label>
                   </div>
-                  {documentoPdf && <p className="mt-2 text-sm text-gray-700">Seleccionado: {documentoPdf.name}</p>}
-                </div>
+                  {documentoPdf ? (
+                    <div className="mt-3 flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                      <span>Seleccionado: {documentoPdf.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDocumentoPdf(null);
+                          if (documentoPdfInputRef.current) documentoPdfInputRef.current.value = '';
+                          if (documentoImagenInputRef.current) documentoImagenInputRef.current.value = '';
+                        }}
+                        className="rounded-lg p-1 hover:bg-emerald-100"
+                        aria-label="Quitar archivo seleccionado"
+                      >
+                        <FiX size={16} />
+                      </button>
+                    </div>
+                  ) : null}
+                </SectionCard>
               </>
             )}
-            <div className="overflow-hidden rounded-xl border border-gray-200/60 bg-white/95 shadow-lg backdrop-blur-sm">
-              <div className="border-b border-gray-200/60 px-5 py-4">
+
+            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <div className="border-b border-gray-100 px-5 py-4">
                 <p className="text-sm font-bold uppercase tracking-wide text-gray-700">Resumen de la ficha</p>
               </div>
-              <dl className="divide-y divide-gray-200/60">
+              <dl className="divide-y divide-gray-100">
                 {[
                   ['Número de control', formData.numero_control || 'Se asignará al guardar'],
-                  ['Fecha de Solicitud', formData.fecha_solicitud || '—'],
-                  ['Fecha de Liberación', formData.fecha_liberacion || '—'],
+                  ['Fecha de solicitud', formData.fecha_solicitud || '—'],
+                  ['Fecha de liberación', formData.fecha_liberacion || '—'],
                   ['Líder del proyecto', formData.lider_proyecto || '—'],
                   ['Sistema', formData.nombre_sistema || '—'],
                   ['Versión', formData.version || '—'],
                   ['Ambiente', [formData.ambiente_pruebas && 'Pruebas', formData.ambiente_produccion && 'Producción'].filter(Boolean).join(', ') || '—'],
                   ['Tipo de liberación', formData.tipo_liberacion || '—'],
                   ['Prioridad', formData.prioridad || '—'],
-                  ['Entregables', [
-                    ['Frontend', formData.entregable_frontend_estado],
-                    ['Backend', formData.entregable_backend_estado],
-                    ['Base de Datos', formData.entregable_bd_estado],
-                    ['Variables de entorno', formData.entregable_variables_estado],
-                  ].map(([label, state]) => state ? `${label}: ${state === 'aplica' ? 'Aplica' : 'No aplica'}` : null).filter(Boolean).join(' · ') || '—'],
+                  ['Entregables', ENTREGABLES.map(({ label, statusKey }) => (
+                    formData[statusKey] ? `${label}: ${formData[statusKey] === 'aplica' ? 'Aplica' : 'No aplica'}` : null
+                  )).filter(Boolean).join(' · ') || '—'],
                   ['Pruebas funcionales', formData.validacion_pruebas_resultado || '—'],
                   ['Validación funcional del usuario solicitante', formData.validacion_acceso_resultado || '—'],
-                  ['Responsable de Recepción y Publicación', formData.responsable_infraestructura || '—'],
-                  ['Cargo de Infraestructura', formData.cargo_infraestructura || '—'],
-                  ['Responsable de Entrega Técnica', formData.responsable_desarrollo || '—'],
-                  ['Cargo de Desarrollo', formData.cargo_desarrollo || '—'],
+                  ['Responsable de recepción y publicación', formData.responsable_infraestructura || '—'],
+                  ['Cargo de infraestructura', formData.cargo_infraestructura || '—'],
+                  ['Responsable de entrega técnica', formData.responsable_desarrollo || '—'],
+                  ['Cargo de desarrollo', formData.cargo_desarrollo || '—'],
                 ].map(([key, val]) => (
                   <div key={key} className="grid grid-cols-1 gap-1 px-5 py-3 text-sm sm:grid-cols-3 sm:gap-2">
                     <dt className="font-medium text-gray-500">{key}</dt>
@@ -794,43 +918,47 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
 
   if (loading) {
     return (
-      <div className="flex h-48 items-center justify-center">
+      <div className="flex h-56 flex-col items-center justify-center gap-3">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-colorPrimario border-t-transparent" />
+        <p className="text-sm text-gray-500">Cargando ficha de liberación...</p>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="h-1 flex-1 bg-gradient-to-r from-[#8A2036] to-[#BC955B] rounded-full" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">
-            {mode === 'edit' ? `Editar ficha #${editId}` : 'Nueva ficha de liberación'}
-          </span>
-          <div className="h-1 flex-1 bg-gradient-to-r from-[#BC955B] to-[#8A2036] rounded-full" />
+    <div ref={containerRef} className="mx-auto w-full max-w-6xl">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
+            {mode === 'edit' ? `Editar ficha${editId ? ` #${editId}` : ''}` : 'Nueva ficha'}
+          </p>
+          <h2 className="mt-1 text-2xl font-extrabold text-gray-800">Ficha de liberación</h2>
         </div>
+        {formData.numero_control ? (
+          <span className="inline-flex w-fit items-center rounded-full bg-[#8A2036]/10 px-3 py-1.5 font-mono text-xs font-semibold text-[#8A2036]">
+             {`Número de control: ${formData.numero_control}`}
+          </span>
+        ) : null}
       </div>
 
-      <div className="mb-6">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
-              Paso {currentStep + 1} de {STEPS.length}
-            </p>
-            <h3 className="mt-1 text-base font-bold text-gray-800">{step.label}</h3>
-          </div>
-          <p className="text-sm font-semibold text-gray-500">
-            <span className="text-lg text-[#8A2036]">{String(currentStep + 1).padStart(2, '0')}</span>
-            <span className="mx-1">/</span>
-            {String(STEPS.length).padStart(2, '0')} pasos
-          </p>
+      {/* <div className="mb-6">
+        <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-400">
+          <span>Paso {currentStep + 1} de {STEPS.length}</span>
+          <span>{identificationProgress}% identificación</span>
         </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${identificationProgress}%`, backgroundColor: step.color }}
+          />
+        </div>
+      </div> */}
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mb-8 hidden lg:block">
+        <div className="grid grid-cols-5 gap-2">
           {STEPS.map((s, idx) => {
             const isActive = idx === currentStep;
-            const isCompleted = idx < currentStep;
+            const isDone = idx < currentStep;
             return (
               <button
                 key={s.id}
@@ -839,83 +967,112 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                 disabled={submitting}
                 aria-current={isActive ? 'step' : undefined}
                 aria-label={`Paso ${idx + 1}: ${s.label}`}
-                className={`flex min-h-[76px] min-w-0 items-center gap-2 rounded-xl border bg-white px-3 py-3 text-left transition-all sm:min-h-[84px] sm:flex-col sm:justify-center sm:gap-2 sm:text-center ${
+                className={`group relative flex min-h-[76px] w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-all duration-300 ${
                   isActive
-                    ? 'shadow-md ring-2 ring-[#8A2036]/15'
-                    : isCompleted
-                    ? 'border-emerald-200 hover:border-emerald-300'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'bg-white shadow-lg ring-2 ring-offset-2'
+                    : isDone
+                      ? 'bg-white/80 shadow-md hover:bg-white hover:shadow-lg'
+                      : 'bg-white/40 hover:bg-white/60'
                 }`}
-                style={isActive ? { borderColor: s.color } : undefined}
+                style={isActive ? { ringColor: s.color } : undefined}
               >
                 <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                    isActive ? 'text-white' : isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm font-bold transition-all ${
+                    isActive ? 'text-white shadow-md' : isDone ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'
                   }`}
                   style={isActive ? { backgroundColor: s.color } : undefined}
                 >
-                  {isCompleted ? <FiCheckCircle size={18} /> : <s.icon size={17} />}
+                  {isDone ? <FiCheckCircle size={16} /> : idx + 1}
                 </div>
-                <span className={`min-w-0 text-xs font-semibold leading-tight ${
-                  isActive ? 'text-gray-900' : isCompleted ? 'text-emerald-700' : 'text-gray-500'
-                }`}>{s.label}</span>
+                <div className="min-w-0">
+                  <span className={`block truncate text-xs font-semibold uppercase tracking-wide ${
+                    isActive ? 'text-gray-800' : isDone ? 'text-gray-700' : 'text-gray-400'
+                  }`}>{s.label}</span>
+                  <span className={`text-[10px] font-medium ${
+                    isActive ? 'text-colorPrimario' : isDone ? 'text-emerald-600' : 'text-gray-400'
+                  }`}>
+                    {isDone ? 'Completado' : isActive ? 'En progreso' : 'Pendiente'}
+                  </span>
+                </div>
               </button>
             );
           })}
         </div>
       </div>
 
-      <section className="space-y-6" aria-labelledby="liberacion-step-title">
-        <div className="flex items-start gap-4 rounded-xl border-l-4 bg-white/80 p-5 shadow-sm" style={{ borderColor: step.color }}>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100" style={{ color: step.color }}>
-            <step.icon size={20} />
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:hidden">
+        {STEPS.map((s, idx) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => goToStep(idx)}
+            disabled={submitting}
+            className={`min-w-0 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+              idx === currentStep ? 'text-white shadow-md' : idx < currentStep ? 'bg-colorPrimario/20 text-colorPrimario' : 'bg-gray-100 text-gray-400'
+            }`}
+            style={idx === currentStep ? { backgroundColor: s.color } : undefined}
+          >
+            <span className="truncate">{idx < currentStep ? '✓ ' : ''}{idx + 1}. {s.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <section className={`overflow-hidden rounded-3xl border border-white/60 bg-gradient-to-br ${step.bg} shadow-xl`} aria-labelledby="liberacion-step-title">
+        <div className="flex items-center gap-4 border-b border-white/50 bg-white/40 px-6 py-5 backdrop-blur-sm md:px-8">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg" style={{ backgroundColor: step.color }}>
+            <step.icon size={26} />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Paso {currentStep + 1} de {STEPS.length}</p>
-            <h3 id="liberacion-step-title" className="mt-1 text-base font-bold text-gray-800">{step.label}</h3>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400">
+              Etapa {currentStep + 1} de {STEPS.length}
+            </p>
+            <h3 id="liberacion-step-title" className="text-2xl font-extrabold text-gray-800">{step.label}</h3>
             <p className="mt-1 text-sm text-gray-600">{step.description}</p>
           </div>
         </div>
-        <div className="space-y-6">{renderStepContent()}</div>
+
+        <div className="bg-white/70 p-6 backdrop-blur-sm md:p-8">
+          {renderStepContent()}
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-white/50 bg-white/50 px-6 py-4 backdrop-blur-sm md:px-8">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              onClick={() => (currentStep === 0 ? navigate('/fichas-liberacion') : goToStep(currentStep - 1))}
+              disabled={submitting}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#BC955B]/60 px-5 py-2.5 text-sm font-semibold text-[#8A2036] transition hover:bg-[#DAC19A]/25 disabled:opacity-50 sm:w-auto"
+            >
+              <FiArrowLeft />
+              {currentStep === 0 ? 'Cancelar' : 'Anterior'}
+            </button>
+
+            {currentStep === STEPS.length - 1 ? (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canGenerate || submitting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-colorPrimario px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600 sm:w-auto"
+              >
+                <FiCheckCircle size={18} className={submitting ? 'animate-pulse' : ''} />
+                {submitting ? 'Enviando...' : mode === 'edit' ? 'Actualizar ficha' : 'Guardar ficha'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => goToStep(currentStep + 1)}
+                disabled={submitting}
+                className="inline-flex w-full items-center justify-center gap-1 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:opacity-90 disabled:opacity-50 sm:w-auto"
+                style={{ backgroundColor: step.color }}
+              >
+                {submitting ? 'Guardando...' : 'Guardar y continuar'}
+                <FiChevronRight size={18} />
+              </button>
+            )}
+          </div>
+        </div>
       </section>
 
-      <div className="mt-8 flex items-center justify-between gap-4">
-        <button
-          type="button"
-          onClick={() => goToStep(currentStep - 1)}
-          disabled={currentStep === 0 || submitting}
-          className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:border-[#8A2036] hover:text-[#8A2036] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-gray-200 disabled:hover:text-gray-600"
-        >
-          <FiArrowLeft />
-          Anterior
-        </button>
-
-        {currentStep === STEPS.length - 1 ? (
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canGenerate || submitting}
-            className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-md transition-all ${
-              canGenerate && !submitting ? 'bg-gradient-to-r from-[#8A2036] to-[#a9354c] hover:-translate-y-0.5 hover:shadow-lg' : 'cursor-not-allowed bg-gray-300'
-            }`}
-          >
-            <FiDownload className={submitting ? 'animate-pulse' : ''} />
-            {submitting ? 'Enviando...' : mode === 'edit' ? 'Actualizar ficha' : 'Guardar ficha'}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => goToStep(currentStep + 1)}
-            disabled={submitting}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#8A2036] to-[#a9354c] px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
-          >
-            {submitting ? 'Guardando...' : 'Siguiente'}
-            <FiArrowRight />
-          </button>
-        )}
-      </div>
-
-      {/* SearchModals para búsqueda de responsables y sistemas */}
       <SearchModal
         isOpen={modals.sistema}
         onClose={() => closeModal('sistema')}
