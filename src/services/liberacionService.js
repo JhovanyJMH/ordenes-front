@@ -26,8 +26,8 @@ const extractErrorMessage = (err) => {
 };
 
 const liberacionService = {
-  getLiberaciones: async () => {
-    const response = await api.get(ROUTE);
+  getLiberaciones: async ({ page = 1, search = '' } = {}) => {
+    const response = await api.get(ROUTE, { params: { page, search } });
     return response.data;
   },
   getLiberacionById: async (id) => {

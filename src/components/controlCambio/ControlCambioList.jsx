@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { FiDownload, FiPlus, FiEdit, FiFile } from 'react-icons/fi';
 import controlCambioService, { getDocumentoFilename } from '../../services/controlCambioService';
 import { buildControlCambioData, generateControlCambioPdf } from '../../utils/controlCambioPdfGenerator';
 import SearchInput from '../common/SearchInput';
+import Pagination from '../common/Pagination';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -16,23 +17,31 @@ const fmtDate = (value) => {
   return `${day}/${month}/${year}`;
 };
 
-const personName = (value) => {
-  if (!value) return '—';
-  if (typeof value === 'string') return value;
-  const nombre = `${value.nombre || ''} ${value.apellidos || ''}`.trim();
-  return nombre || value.email || `Empleado #${value.id}`;
-};
-
 const ControlCambioList = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+    total: 0,
+  });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await controlCambioService.getAll();
+      const data = await controlCambioService.getAll({ page: currentPage, search });
       setItems(Array.isArray(data) ? data : data?.data || []);
+      setPagination({
+        currentPage: data?.current_page || 1,
+        lastPage: data?.last_page || 1,
+        from: data?.from || 0,
+        to: data?.to || 0,
+        total: data?.total || 0,
+      });
     } catch (error) {
       console.error(error);
       Swal.fire({
@@ -43,38 +52,16 @@ const ControlCambioList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, search]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleSearch = useCallback((term) => {
     setSearch(term ?? '');
+    setCurrentPage(1);
   }, []);
-
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return items;
-
-    return items.filter((item) => {
-      const text = [
-        item.id,
-        item.numero_control,
-        item.nombre_sistema,
-        item.tipo_cambio,
-        item.prioridad,
-        item.solicitante_nombre,
-        personName(item.solicitante),
-        Number(item.estatus) === 1 ? 'abierto' : 'cerrado',
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return text.includes(query);
-    });
-  }, [items, search]);
 
   const handleDownload = (item) => {
     const ficha = buildControlCambioData(item);
@@ -108,9 +95,7 @@ const ControlCambioList = () => {
           <h2 className="text-2xl font-bold text-gray-800">Control de cambios</h2>
           <p className="mt-1 text-sm text-gray-600">Registros de solicitud, análisis, implementación y autorización.</p>
           <p className="mt-2 text-xs font-medium text-[#8A2036]">
-            {search.trim()
-              ? `${filtered.length} de ${items.length} registro${items.length === 1 ? '' : 's'}`
-              : `${items.length} registro${items.length === 1 ? '' : 's'}`}
+            {pagination.total} registro{pagination.total === 1 ? '' : 's'}
           </p>
         </div>
 
@@ -148,7 +133,7 @@ const ControlCambioList = () => {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-3 py-12 text-center">
                     <p className="font-semibold text-gray-700">
@@ -162,7 +147,7 @@ const ControlCambioList = () => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((item) => (
+                items.map((item) => (
                   <tr key={item.id} className="border-b border-[#f5e5e7] odd:bg-white even:bg-[#fffaf8] transition-colors hover:bg-[#fff3f2]">
                     <td className="px-3 py-3 font-semibold text-[#2e1f22]">#{item.id}</td>
                     <td className="px-3 py-3">{item.numero_control || '—'}</td>
@@ -218,6 +203,16 @@ const ControlCambioList = () => {
           </table>
         </div>
       )}
+
+      <Pagination
+        currentPage={currentPage}
+        lastPage={pagination.lastPage}
+        from={pagination.from}
+        to={pagination.to}
+        total={pagination.total}
+        loading={loading}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 };

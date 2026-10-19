@@ -3,7 +3,7 @@ import api from './api';
 const ROUTE = '/sistemas';
 
 const sistemasService = {
-  getSistemas: async ({ page = 1, per_page = 15, search = '', sistema_principal_id } = {}) => {
+  getSistemas: async ({ page = 1, per_page = 50, search = '', sistema_principal_id } = {}) => {
     const response = await api.get(ROUTE, {
       params: { page, per_page, search, sistema_principal_id },
     });
@@ -12,6 +12,10 @@ const sistemasService = {
   filtrado: async (search) => {
     const response = await api.get(`${ROUTE}/filtrado`, { params: { search } });
     return { status: 'success', sistemas: response.data };
+  },
+  getReporte: async () => {
+    const response = await api.get(`${ROUTE}/reporte`);
+    return response.data;
   },
   getSistemaById: async (id) => {
     const response = await api.get(`${ROUTE}/${id}`);

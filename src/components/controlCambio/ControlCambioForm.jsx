@@ -30,6 +30,7 @@ import controlCambioService, { getDocumentoFilename } from '../../services/contr
 import empleadosService from '../../services/empleadosService';
 import usersService from '../../services/usersService';
 import sistemasService from '../../services/sistemasService';
+import adscripcionesService from '../../services/adscripcionesService';
 import SearchModal from '../common/SearchModal';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -46,10 +47,12 @@ const initialForm = {
   modulo_funcionalidad: '',
   usuarios_afectados: '',
   justificacion: '',
+  adscripcion_id: '',
   area_solicitante: '',
   solicitante_id: '',
   solicitante_nombre: '',
   numero_control: '',
+  version: '',
   ambiente_pruebas: false,
   ambiente_productivo: false,
   impacto: '',
@@ -248,6 +251,7 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
   const [loadingDocumentoPreview, setLoadingDocumentoPreview] = useState(false);
   const [modals, setModals] = useState({
     sistema: false,
+    adscripcion: false,
     solicitante: false,
     responsable_desarrollo: false,
     responsable_pruebas: false,
@@ -326,6 +330,8 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
         fecha_autorizacion: formatDate(data.fecha_autorizacion),
         fecha_produccion: formatDate(data.fecha_produccion),
         sistema_id: data.sistema_id || data.sistema?.id || '',
+        adscripcion_id: data.adscripcion_id || data.adscripcion?.id || '',
+        area_solicitante: data.area_solicitante || data.adscripcion?.descripcion || '',
         solicitante_nombre: employeeName(data.solicitante_nombre || data.solicitante),
         responsable_desarrollo: employeeName(data.responsable_desarrollo),
         responsable_pruebas: employeeName(data.responsable_pruebas),
@@ -385,6 +391,8 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
       ...prev,
       sistema_id: option?.value || '',
       nombre_sistema: option?.nombre || option?.label || '',
+      version: option?.version || '',
+      adscripcion_id: option?.adscripcion_id || prev.adscripcion_id || '',
       area_solicitante: prev.area_solicitante || option?.adscripcion?.nombre || option?.adscripcion_nombre || '',
     }));
   };
@@ -394,6 +402,14 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
       ...prev,
       [idKey]: option?.value || '',
       [nameKey]: option?.label || '',
+    }));
+  };
+
+  const handleAdscripcionSelect = (option) => {
+    setFormData((prev) => ({
+      ...prev,
+      adscripcion_id: option?.value || '',
+      area_solicitante: option?.descripcion || option?.label || '',
     }));
   };
 
@@ -519,9 +535,15 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
                   placeholder="Buscar empleado..."
                   onOpen={() => openModal('solicitante')}
                 />
-                <div className="mt-4">
+                <div>
                   <FieldLabel>Área solicitante</FieldLabel>
-                  <input type="text" name="area_solicitante" value={formData.area_solicitante} onChange={handleChange} className={inputClass} />
+                  <SearchPicker
+                    label="Adscripción"
+                    value={formData.area_solicitante}
+                    filled={Boolean(formData.adscripcion_id)}
+                    placeholder="Buscar adscripción..."
+                    onOpen={() => openModal('adscripcion')}
+                  />
                 </div>
               </SectionCard>
             </div>
@@ -540,6 +562,10 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
                 <div>
                   <FieldLabel required>Nombre del sistema</FieldLabel>
                   <input type="text" name="nombre_sistema" value={formData.nombre_sistema} onChange={handleChange} className={inputClass} />
+                </div>
+                <div>
+                  <FieldLabel>Versión del sistema</FieldLabel>
+                  <input type="text" name="version" value={formData.version} onChange={handleChange} className={inputClass} readOnly placeholder="Se obtiene del sistema seleccionado" />
                 </div>
                 <div>
                   <FieldLabel>Módulo / Funcionalidad</FieldLabel>
@@ -578,6 +604,7 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
       case 'cambio':
         return (
           <div className="space-y-6">
+
             <div className="grid gap-6 lg:grid-cols-3">
               <SectionCard title="Ambiente" accent="#1f7a8c">
                 <div className="space-y-3">
@@ -980,6 +1007,7 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
               <dl className="divide-y divide-gray-100">
                 {[
                   ...(formData.numero_control ? [['Número de control', formData.numero_control]] : []),
+                  ...(formData.version ? [['Versión', formData.version]] : []),
                   ['Sistema', formData.nombre_sistema || '—'],
                   ['Fecha de solicitud', formData.fecha_solicitud || '—'],
                   ['Tipo de cambio', formData.tipo_cambio || '—'],
@@ -1160,6 +1188,7 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
       </section>
 
       <SearchModal isOpen={modals.sistema} onClose={() => closeModal('sistema')} title="Buscar sistema" searchFunction={sistemasService.filtrado} onSelect={handleSistemaSelect} labelFormatter={(item) => `${item.siglas ? `${item.siglas} - ` : ''}${item.nombre}`} />
+      <SearchModal isOpen={modals.adscripcion} onClose={() => closeModal('adscripcion')} title="Buscar adscripción" searchFunction={adscripcionesService.filtrado} onSelect={handleAdscripcionSelect} labelFormatter={(item) => item.descripcion} />
       <SearchModal isOpen={modals.solicitante} onClose={() => closeModal('solicitante')} title="Buscar solicitante" searchFunction={empleadosService.filtrado} onSelect={handlePersonSelect('solicitante_id', 'solicitante_nombre')} labelFormatter={(item) => `${item.nombre || ''} ${item.apellidos || ''}`.trim()} />
       <SearchModal isOpen={modals.responsable_desarrollo} onClose={() => closeModal('responsable_desarrollo')} title="Responsable de desarrollo" searchFunction={usersService.filtrado} onSelect={handlePersonSelect('responsable_desarrollo_id', 'responsable_desarrollo')} labelFormatter={employeeName} />
       <SearchModal isOpen={modals.responsable_pruebas} onClose={() => closeModal('responsable_pruebas')} title="Responsable de pruebas" searchFunction={usersService.filtrado} onSelect={handlePersonSelect('responsable_pruebas_id', 'responsable_pruebas')} labelFormatter={employeeName} />

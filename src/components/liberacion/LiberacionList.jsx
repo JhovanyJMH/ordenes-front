@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { FiDownload, FiPlus, FiEdit, FiFile } from 'react-icons/fi';
 import liberacionService, { getDocumentoFilename } from '../../services/liberacionService';
 import { buildLiberacionFichaData, generateLiberacionFichaPdf } from '../../utils/liberacionPdfGenerator';
 import SearchInput from '../common/SearchInput';
+import Pagination from '../common/Pagination';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -16,29 +17,31 @@ const fmtDate = (value) => {
   return `${day}/${month}/${year}`;
 };
 
-const employeeName = (emp) => {
-  if (!emp) return '—';
-  const nombre = `${emp.nombre || ''} ${emp.apellidos || ''}`.trim();
-  return nombre || emp.email || `Empleado #${emp.id}`;
-};
-
-const userName = (user) => {
-  if (!user) return '—';
-  if (typeof user === 'string') return user;
-  const nombre = user.nombre_completo || `${user.name || ''} ${user.ap_paterno || ''} ${user.ap_materno || ''}`.trim();
-  return nombre || user.email || `Usuario #${user.id}`;
-};
-
 const LiberacionList = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    from: 0,
+    to: 0,
+    total: 0,
+  });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await liberacionService.getLiberaciones();
+      const data = await liberacionService.getLiberaciones({ page: currentPage, search });
       setItems(Array.isArray(data) ? data : data?.data || []);
+      setPagination({
+        currentPage: data?.current_page || 1,
+        lastPage: data?.last_page || 1,
+        from: data?.from || 0,
+        to: data?.to || 0,
+        total: data?.total || 0,
+      });
     } catch (error) {
       console.error(error);
       Swal.fire({
@@ -49,39 +52,16 @@ const LiberacionList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, search]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleSearch = useCallback((term) => {
     setSearch(term ?? '');
+    setCurrentPage(1);
   }, []);
-
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return items;
-
-    return items.filter((item) => {
-      const text = [
-        item.id,
-        item.numero_control,
-        item.nombre_sistema,
-        item.lider_proyecto,
-        userName(item.lider_proyecto_data),
-        item.tipo_liberacion,
-        employeeName(item.responsable_infraestructura_data || item.responsable_infraestructura),
-        employeeName(item.responsable_desarrollo_data || item.responsable_desarrollo),
-        Number(item.estatus) === 1 ? 'abierta' : 'cerrada',
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return text.includes(query);
-    });
-  }, [items, search]);
 
   const handleDownload = (item) => {
     const ficha = buildLiberacionFichaData(item);
@@ -115,9 +95,7 @@ const LiberacionList = () => {
           <h2 className="text-2xl font-bold text-gray-800">Administración de fichas de liberación</h2>
           <p className="mt-1 text-sm text-gray-600">Listado de liberaciones creadas, cerradas y exportables.</p>
           <p className="mt-2 text-xs font-medium text-[#8A2036]">
-            {search.trim()
-              ? `${filtered.length} de ${items.length} ficha${items.length === 1 ? '' : 's'}`
-              : `${items.length} ficha${items.length === 1 ? '' : 's'}`}
+            {pagination.total} ficha{pagination.total === 1 ? '' : 's'}
           </p>
         </div>
 
@@ -155,7 +133,7 @@ const LiberacionList = () => {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-3 py-12 text-center">
                     <p className="font-semibold text-gray-700">
@@ -169,7 +147,7 @@ const LiberacionList = () => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((item) => (
+                items.map((item) => (
                   <tr key={item.id} className="border-b border-[#f5e5e7] odd:bg-white even:bg-[#fffaf8] transition-colors hover:bg-[#fff3f2]">
                     <td className="px-3 py-3 font-semibold text-[#2e1f22]">#{item.id}</td>
                     <td className="px-3 py-3">{item.numero_control || '—'}</td>
@@ -225,6 +203,16 @@ const LiberacionList = () => {
           </table>
         </div>
       )}
+
+      <Pagination
+        currentPage={currentPage}
+        lastPage={pagination.lastPage}
+        from={pagination.from}
+        to={pagination.to}
+        total={pagination.total}
+        loading={loading}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 };

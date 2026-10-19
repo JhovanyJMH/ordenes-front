@@ -10,8 +10,8 @@ const getDocumentoFilename = (numeroControl) => {
 };
 
 const controlCambioService = {
-  getAll: async () => {
-    const response = await api.get(ROUTE);
+  getAll: async ({ page = 1, search = '' } = {}) => {
+    const response = await api.get(ROUTE, { params: { page, search } });
     return response.data;
   },
   getById: async (id) => {

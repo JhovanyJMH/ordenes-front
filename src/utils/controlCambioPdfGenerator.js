@@ -44,6 +44,7 @@ export const buildControlCambioData = (data = {}) => {
     areaSolicitante: pad(source.area_solicitante),
     solicitante: personName(source.solicitante_nombre || source.solicitante),
     numeroControl: pad(source.numero_control),
+    version: pad(source.version),
     ambientePruebas: isChecked(source.ambiente_pruebas),
     ambienteProductivo: isChecked(source.ambiente_productivo),
     impacto: pad(source.impacto),
@@ -256,6 +257,11 @@ export const generateControlCambioPdf = (fichaData, fileName = 'control-de-cambi
   drawRow(doc, y, [
     { w: 50, text: 'Numero de control', bold: true },
     { w: W - 50, text: ficha.numeroControl },
+  ]);
+  y += ROW;
+  drawRow(doc, y, [
+    { w: 50, text: 'Version', bold: true },
+    { w: W - 50, text: ficha.version },
   ]);
   y += ROW;
   y = optionRow(doc, y, 'Ambiente', [
