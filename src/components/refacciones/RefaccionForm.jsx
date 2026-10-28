@@ -5,8 +5,65 @@ import { useNavigate } from 'react-router-dom';
 import SearchModal from '../common/SearchModal';
 import Swal from 'sweetalert2';
 import refaccionesService from '../../services/refaccionesService';
-import { FaWrench } from 'react-icons/fa';
+import { FiTool } from 'react-icons/fi';
 import { FiSearch } from 'react-icons/fi';
+
+const inputClass = 'w-full rounded-xl border border-gray-200 bg-white/80 backdrop-blur-sm px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 shadow-sm transition-all duration-300 focus:border-[#8A2036] focus:outline-none focus:ring-2 focus:ring-[#8A2036]/20 focus:shadow-md hover:border-gray-300';
+const labelClass = 'mb-2.5 block text-sm font-semibold tracking-tight text-gray-800';
+
+const FieldLabel = ({ children, required, htmlFor }) => (
+  <label htmlFor={htmlFor} className={labelClass}>
+    {children}
+    {required ? <span className="ml-1 text-[#8A2036]">*</span> : null}
+  </label>
+);
+
+const SectionCard = ({ icon: Icon, title, children, variant = 'primary' }) => {
+  const variants = {
+    primary: {
+      border: 'border-[#8A2036]/20',
+      bg: 'bg-gradient-to-br from-[#8A2036]/5 to-[#BC955B]/5',
+      text: 'text-[#8A2036]',
+      iconBg: 'bg-[#8A2036]/10'
+    },
+    secondary: {
+      border: 'border-[#1f7a8c]/20',
+      bg: 'bg-gradient-to-br from-[#1f7a8c]/5 to-teal-50',
+      text: 'text-[#1f7a8c]',
+      iconBg: 'bg-[#1f7a8c]/10'
+    },
+    accent: {
+      border: 'border-[#BC955B]/10',
+      bg: 'bg-gradient-to-br from-[#DAC19A]/15 to-[#BC955B]/5',
+      text: 'text-[#BC955B]/80',
+      iconBg: 'bg-[#BC955B]/5'
+    },
+    success: {
+      border: 'border-emerald-200',
+      bg: 'bg-gradient-to-br from-emerald-50 to-teal-50',
+      text: 'text-emerald-700',
+      iconBg: 'bg-emerald-100'
+    }
+  };
+  const style = variants[variant] || variants.primary;
+  return (
+    <div className={`rounded-2xl border ${style.border} ${style.bg} p-6 shadow-sm hover:shadow-md transition-shadow duration-300`}>
+      {title ? (
+        <div className={`mb-5 flex items-center gap-3 ${style.text}`}>
+          {Icon ? (
+            <div className={`rounded-lg p-2 ${style.iconBg}`}>
+              <Icon size={20} />
+            </div>
+          ) : null}
+          <span className="text-sm font-bold uppercase tracking-wider">{title}</span>
+        </div>
+      ) : null}
+      <div className="space-y-4">
+        {children}
+      </div>
+    </div>
+  );
+};
 
 const RefaccionForm = () => {
   const dispatch = useDispatch();
@@ -44,76 +101,78 @@ const RefaccionForm = () => {
   };
 
   return (
-    <div className="w-full">
+    <div className="mx-auto w-full max-w-5xl animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-8">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Crear Nueva Refacción</h2>
-        <p className="text-gray-600">Complete el formulario para registrar una nueva refacción</p>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="h-1 w-8 rounded-full bg-gradient-to-r from-[#8A2036] to-[#BC955B]"></div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">Nueva refacción</p>
+        </div>
+        <h2 className="mt-2 text-3xl font-extrabold text-gray-900 tracking-tight">Crear Nueva Refacción</h2>
+        <p className="mt-2 text-base text-gray-600 leading-relaxed">Complete el formulario para registrar una nueva refacción en el sistema</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-[#BC955B] to-[#9A7A4A] px-6 py-4 flex items-center gap-3">
-            <FaWrench className="text-white text-xl" />
-            <h3 className="text-lg font-semibold text-white">Información de la Refacción</h3>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <FaWrench className="text-gray-400" size={14} />
-                  Descripción <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    name="descripcion"
-                    value={form.descripcion}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-[#BC955B] focus:ring-[#BC955B]/20 focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder-gray-400 pr-12"
-                    placeholder="Ingrese la descripción"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setModalOpen(true)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all"
-                  >
-                    <FiSearch size={18} />
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="estatus" className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <FaWrench className="text-gray-400" size={14} />
-                  Estatus
-                </label>
-                <select
-                  name="estatus"
-                  value={form.estatus}
+        <SectionCard icon={FiTool} title="Información de la Refacción" variant="primary">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <FieldLabel required htmlFor="descripcion">Descripción</FieldLabel>
+              <div className="relative">
+                <input
+                  name="descripcion"
+                  value={form.descripcion}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-[#BC955B] focus:ring-[#BC955B]/20 focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900"
+                  required
+                  className={`${inputClass} pr-12`}
+                  placeholder="Ingrese la descripción"
+                />
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(true)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all"
                 >
-                  <option value="1">Activo</option>
-                  <option value="0">Inactivo</option>
-                </select>
+                  <FiSearch size={18} />
+                </button>
               </div>
             </div>
+            <div>
+              <FieldLabel htmlFor="estatus">Estatus</FieldLabel>
+              <select
+                name="estatus"
+                value={form.estatus}
+                onChange={handleChange}
+                className={inputClass}
+              >
+                <option value="1">Activo</option>
+                <option value="0">Inactivo</option>
+              </select>
+            </div>
           </div>
-        </div>
+        </SectionCard>
 
-        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end pt-4">
           <button
             type="button"
             onClick={() => navigate('/catalogo-refacciones')}
-            className="w-full sm:w-auto px-6 py-3 rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all duration-200 font-medium"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#BC955B]/60 bg-white px-6 py-3 text-sm font-semibold text-[#8A2036] shadow-sm transition-all duration-200 hover:bg-[#DAC19A]/10 hover:shadow-md active:scale-[0.98] sm:w-auto"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="w-full sm:w-auto px-8 py-3 rounded-lg bg-gradient-to-r from-[#BC955B] to-[#9A7A4A] text-white hover:from-[#9A7A4A] hover:to-[#8A6A3A] focus:outline-none focus:ring-2 focus:ring-[#BC955B]/30 transition-all duration-200 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8A2036] to-[#6B1829] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#8A2036]/20 transition-all duration-200 hover:shadow-xl hover:shadow-[#8A2036]/30 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500 disabled:shadow-none sm:w-auto"
           >
-            Guardar
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Guardando...
+              </span>
+            ) : (
+              'Guardar'
+            )}
           </button>
         </div>
       </form>

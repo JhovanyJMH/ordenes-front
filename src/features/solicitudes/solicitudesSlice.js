@@ -3,8 +3,8 @@ import solicitudesService, { extractErrorMessage } from '../../services/solicitu
 
 export const fetchSolicitudes = createAsyncThunk(
   'solicitudes/fetchSolicitudes',
-  async ({ page = 1, per_page = 50, search = '' } = {}, { rejectWithValue }) => {
-    try { return await solicitudesService.getSolicitudes({ page, per_page, search }); }
+  async ({ page = 1, search = '' } = {}, { rejectWithValue }) => {
+    try { return await solicitudesService.getSolicitudes({ page, search }); }
     catch (err) { return rejectWithValue(err?.message || 'Error al obtener solicitudes'); }
   }
 );
@@ -55,16 +55,16 @@ const paginatePayload = (payload) => ({
 
 export const fetchSolicitudesTabla = createAsyncThunk(
   'solicitudes/fetchSolicitudesTabla',
-  async ({ page = 1, per_page = 15, search = '' } = {}, { rejectWithValue }) => {
-    try { return await solicitudesService.getSolicitudesTabla({ page, per_page, search }); }
+  async ({ page = 1, search = '' } = {}, { rejectWithValue }) => {
+    try { return await solicitudesService.getSolicitudesTabla({ page, search }); }
     catch (err) { return rejectWithValue(extractErrorMessage(err) || 'Error al obtener solicitudes'); }
   }
 );
 
 export const fetchSolicitudesGeneral = createAsyncThunk(
   'solicitudes/fetchSolicitudesGeneral',
-  async ({ page = 1, per_page = 25, search = '' } = {}, { rejectWithValue }) => {
-    try { return await solicitudesService.getSolicitudesGeneral({ page, per_page, search }); }
+  async ({ page = 1, search = '' } = {}, { rejectWithValue }) => {
+    try { return await solicitudesService.getSolicitudesGeneral({ page, search }); }
     catch (err) { return rejectWithValue(extractErrorMessage(err) || 'Error al obtener solicitudes'); }
   }
 );

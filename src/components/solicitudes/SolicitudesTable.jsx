@@ -56,7 +56,7 @@ const SolicitudesTable = ({ mode = 'tabla', title, subtitle }) => {
 
   useEffect(() => {
     const thunk = isGeneral ? fetchSolicitudesGeneral : fetchSolicitudesTabla;
-    dispatch(thunk({ page: currentPage, per_page: isGeneral ? 25 : 15, search: searchTerm }));
+    dispatch(thunk({ page: currentPage, search: searchTerm }));
   }, [dispatch, currentPage, searchTerm, isGeneral]);
 
   const handleSearch = (e) => {

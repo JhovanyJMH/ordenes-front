@@ -11,8 +11,8 @@ const extractErrorMessage = (err) => {
 };
 
 const solicitudesService = {
-  getSolicitudes: async ({ page = 1, per_page = 50, search = '' } = {}) => {
-    const response = await api.get(ROUTE, { params: { page, per_page, search } });
+  getSolicitudes: async ({ page = 1, search = '' } = {}) => {
+    const response = await api.get(ROUTE, { params: { page, search } });
     return response.data;
   },
   getSolicitudById: async (id) => {
@@ -35,12 +35,12 @@ const solicitudesService = {
     const response = await api.get(`${ROUTE}/estadisticas`);
     return response.data;
   },
-  getSolicitudesTabla: async ({ page = 1, per_page = 15, search = '' } = {}) => {
-    const response = await api.get(`${ROUTE}/tabla`, { params: { page, per_page, search } });
+  getSolicitudesTabla: async ({ page = 1, search = '' } = {}) => {
+    const response = await api.get(`${ROUTE}/tabla`, { params: { page, search } });
     return response.data;
   },
-  getSolicitudesGeneral: async ({ page = 1, per_page = 25, search = '' } = {}) => {
-    const response = await api.get(`${ROUTE}/general`, { params: { page, per_page, search } });
+  getSolicitudesGeneral: async ({ page = 1, search = '' } = {}) => {
+    const response = await api.get(`${ROUTE}/general`, { params: { page, search } });
     return response.data;
   },
 };
