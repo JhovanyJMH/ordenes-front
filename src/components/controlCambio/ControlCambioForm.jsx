@@ -63,7 +63,6 @@ const initialForm = {
   clasificacion_bd: false,
   clasificacion_infraestructura: false,
   fecha_analisis: '',
-  elementos_afectados: '',
   cambios_menores: false,
   cambios_mayores: false,
   descripcion_impacto: '',
@@ -715,10 +714,6 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
                   <FieldLabel>Fecha de análisis</FieldLabel>
                   <input type="date" name="fecha_analisis" value={formData.fecha_analisis} onChange={handleChange} className={inputClass} />
                 </div>
-                <div>
-                  <FieldLabel>Elementos afectados</FieldLabel>
-                  <input type="text" name="elementos_afectados" value={formData.elementos_afectados} onChange={handleChange} className={inputClass} />
-                </div>
                 <div className="md:col-span-2">
                   <FieldLabel>Alcance del cambio</FieldLabel>
                   <div className="grid gap-3 md:grid-cols-2">
@@ -952,7 +947,7 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
                       )}
                     </div>
                   )}
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-1">
                     <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition hover:border-[#8A2036]/40 hover:bg-[#8A2036]/5">
                       <FiFileText className="mb-2 text-[#8A2036]" size={22} />
                       <span className="text-sm font-semibold text-gray-800">Cargar PDF</span>
@@ -965,7 +960,7 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
                         className="sr-only"
                       />
                     </label>
-                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition hover:border-[#8A2036]/40 hover:bg-[#8A2036]/5">
+                    {/* <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition hover:border-[#8A2036]/40 hover:bg-[#8A2036]/5">
                       <FiCamera className="mb-2 text-[#8A2036]" size={22} />
                       <span className="text-sm font-semibold text-gray-800">Escanear con cámara</span>
                       <span className="mt-1 text-xs text-gray-500">JPEG, PNG o WEBP</span>
@@ -977,7 +972,7 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
                         onChange={(event) => setDocumentoPdf(event.target.files?.[0] || null)}
                         className="sr-only"
                       />
-                    </label>
+                    </label> */}
                   </div>
                   {documentoPdf ? (
                     <div className="mt-3 flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">

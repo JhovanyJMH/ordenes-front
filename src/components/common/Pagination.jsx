@@ -29,46 +29,42 @@ const Pagination = ({
   }
 
   return (
-    <div className="mt-4 flex flex-col items-center justify-between gap-4 sm:flex-row">
-      <div className="text-center text-sm text-gray-600 sm:text-left">
-        Mostrando <span className="font-medium">{from || 0}</span> a <span className="font-medium">{to || 0}</span> de{' '}
-        <span className="font-medium">{total || 0}</span> resultados
-      </div>
-
+    <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-[#f3e3e1] bg-[#fffdfd] px-3 py-3 shadow-sm sm:flex-row sm:px-4">
+      <p className="text-sm font-medium text-gray-600">
+        Mostrando {from || 0} a {to || 0} de {total || 0}
+      </p>
       {lastPage > 1 && (
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <button
             type="button"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1 || loading}
-            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3"
+            className="rounded-xl border border-[#e8d3d4] bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 transition hover:border-[#8A2036]/30 hover:text-[#8A2036] disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
           >
             Anterior
           </button>
-
           {pages.map((page, index) => (
             <button
               key={`${page}-${index}`}
               type="button"
               onClick={() => typeof page === 'number' && onPageChange(page)}
               disabled={typeof page !== 'number' || currentPage === page || loading}
-              className={`rounded-md px-2 py-1 text-sm sm:px-3 ${
+              className={`rounded-xl px-2.5 py-1.5 text-sm font-semibold transition sm:px-3 ${
                 typeof page === 'number'
                   ? currentPage === page
-                    ? 'bg-colorPrimario text-white'
-                    : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                  : 'cursor-default border border-gray-300 bg-white text-gray-700 opacity-50'
+                    ? 'bg-[#8A2036] text-white shadow-md shadow-[#8A2036]/20'
+                    : 'border border-[#e8d3d4] bg-white text-gray-700 hover:border-[#8A2036]/30 hover:text-[#8A2036]'
+                  : 'cursor-default border border-transparent bg-transparent text-gray-400'
               }`}
             >
               {page}
             </button>
           ))}
-
           <button
             type="button"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === lastPage || loading}
-            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3"
+            className="rounded-xl border border-[#e8d3d4] bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 transition hover:border-[#8A2036]/30 hover:text-[#8A2036] disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
           >
             Siguiente
           </button>

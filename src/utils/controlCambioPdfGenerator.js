@@ -55,7 +55,6 @@ export const buildControlCambioData = (data = {}) => {
     clasificacionBd: isChecked(source.clasificacion_bd),
     clasificacionInfra: isChecked(source.clasificacion_infraestructura),
     fechaAnalisis: fmtDate(source.fecha_analisis),
-    elementosAfectados: pad(source.elementos_afectados),
     cambiosMenores: isChecked(source.cambios_menores),
     cambiosMayores: isChecked(source.cambios_mayores),
     descripcionImpacto: pad(source.descripcion_impacto),
@@ -112,9 +111,9 @@ const footer = (doc) => {
   doc.setLineWidth(0.2);
   doc.setTextColor(0, 0, 0);
   doc.setFont(FONT, 'bold');
-  doc.setFontSize(8);
-  doc.text('Direccion General de Desarrollo Institucional y Tecnologias de la Informacion', M + 70, 263);
-  doc.text('Subdireccion de Desarrollo de Software y Base de Datos', M + 70, 269);
+  doc.setFontSize(10);
+  doc.text('Dirección General de Desarrollo Institucional y Tecnologías de la Información', M + 70, 263, { align: 'left' });
+  doc.text('Subdirección de Desarrollo de Software y Base de Datos', M + 103, 269, { align: 'left' });
 };
 
 const checkbox = (doc, x, y, checked) => {
@@ -132,7 +131,7 @@ const titleBlock = (doc, y, label) => {
   doc.rect(M, y, W, ROW, 'FD');
   doc.setTextColor(255, 255, 255);
   doc.setFont(FONT, 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.text(label, M + W / 2, y + 4.6, { align: 'center' });
   doc.setTextColor(0, 0, 0);
   return y + ROW;
@@ -144,7 +143,7 @@ const drawRow = (doc, y, cols, h = ROW) => {
     doc.setDrawColor(...BORDER);
     doc.rect(x, y, col.w, h, 'S');
     doc.setFont(FONT, col.bold ? 'bold' : 'normal');
-    doc.setFontSize(col.size || 9);
+    doc.setFontSize(col.size || 10);
     if (col.text !== undefined) {
       const lines = doc.splitTextToSize(pad(col.text) || ' ', col.w - 4);
       doc.text(lines.slice(0, Math.max(1, Math.floor((h - 2) / 3.5))), x + 2, y + 4.4);
@@ -159,27 +158,27 @@ const textBlock = (doc, y, label, value, minH = 14) => {
   doc.setDrawColor(...BORDER);
   doc.rect(M, y, W, h, 'S');
   doc.setFont(FONT, 'bold');
-  doc.setFontSize(8);
+  doc.setFontSize(10);
   doc.text(label, M + 2, y + 4);
   doc.setFont(FONT, 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.text(lines, M + 2, y + 8.5);
   return y + h;
 };
 
-const optionRow = (doc, y, label, options) => {
+const optionRow = (doc, y, label, options, cols = null) => {
+  const numCols = cols ?? (options.length > 3 ? 3 : options.length);
   const h = options.length > 3 ? 12 : ROW;
   drawRow(doc, y, [{ w: 46, text: label, bold: true }, { w: W - 46, text: '' }], h);
-  const cols = options.length > 3 ? 3 : options.length;
   options.forEach((opt, idx) => {
-    const col = idx % cols;
-    const row = Math.floor(idx / cols);
-    const cellW = (W - 46) / cols;
+    const col = idx % numCols;
+    const row = Math.floor(idx / numCols);
+    const cellW = (W - 46) / numCols;
     const x = M + 46 + col * cellW;
     const cy = y + 1.6 + row * 5.4;
     checkbox(doc, x + 2, cy, opt.checked);
     doc.setFont(FONT, 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(10);
     doc.text(opt.label, x + 7, cy + 2.7);
   });
   return y + h;
@@ -189,8 +188,7 @@ const stageBlock = (doc, y, title, fecha, responsable) => {
   y = titleBlock(doc, y, title);
   drawRow(doc, y, [
     { w: 22, text: 'Fecha', bold: true }, { w: 28, text: fecha },
-    { w: 42, text: 'Responsable', bold: true }, { w: 52, text: responsable },
-    { w: 18, text: 'Firma', bold: true }, { w: 24, text: '' },
+    { w: 70, text: 'Responsable y Firma', bold: true }, { w: 66, text: responsable },
   ], 9);
   return y + 9;
 };
@@ -222,19 +220,27 @@ export const generateControlCambioPdf = (fichaData, fileName = 'control-de-cambi
   ]);
   y += ROW;
   y = ensure(y, 16);
-  drawRow(doc, y, [{
-    w: W,
-    text: 'La presente solicitud debera ser requisitada por la unidad administrativa usuaria responsable del sistema o proceso afectado.',
-  }], 10);
+  doc.setDrawColor(...BORDER);
+  doc.line(M, y, M + W, y);
+  doc.line(M, y + 10, M + W, y + 10);
+  doc.setFont(FONT, 'normal');
+  doc.setFontSize(10);
+  doc.text('La presente solicitud debera ser requisitada por la unidad administrativa usuaria responsable del sistema o proceso afectado.', M + W / 2, y + 6, { align: 'center' });
   y += 10;
   y = optionRow(doc, y, 'Documento de respaldo', [
     { label: 'Oficio formal de solicitud', checked: ficha.respaldoOficio },
     { label: 'Correo institucional de solicitud', checked: ficha.respaldoCorreo },
     { label: 'Minuta de reunion autorizada', checked: ficha.respaldoMinuta },
     { label: 'Evidencia de pruebas realizadas', checked: ficha.respaldoPruebas },
-  ]);
+  ], 2);
   y = ensure(y, 10);
   drawRow(doc, y, [{ w: 42, text: 'Sistema', bold: true }, { w: W - 42, text: ficha.nombreSistema }]);
+  y += ROW;
+  y = ensure(y, 10);
+  drawRow(doc, y, [
+    { w: 50, text: 'Version', bold: true },
+    { w: W - 50, text: ficha.version },
+  ]);
   y += ROW;
   y = ensure(y, 22);
   y = textBlock(doc, y, 'Descripcion de la solicitud:', ficha.descripcionSolicitud, 16);
@@ -247,9 +253,13 @@ export const generateControlCambioPdf = (fichaData, fileName = 'control-de-cambi
   y = textBlock(doc, y, 'Justificacion:', ficha.justificacion, 12);
   y = ensure(y, 13);
   drawRow(doc, y, [
-    { w: 42, text: 'Area Solicitante', bold: true }, { w: 51, text: ficha.areaSolicitante },
-    { w: 50, text: 'Nombre y firma del solicitante', bold: true, size: 8 }, { w: 43, text: ficha.solicitante },
-  ], 10);
+    { w: 42, text: 'Area Solicitante', bold: true }, { w: W - 42, text: ficha.areaSolicitante },
+  ]);
+  y += ROW;
+  y = ensure(y, 10);
+  // drawRow(doc, y, [
+  //   { w: 50, text: 'Nombre y firma del solicitante', bold: true, size: 8 }, { w: W - 50, text: ficha.solicitante },
+  // ]);
   y += 12;
 
   y = ensure(y, 52);
@@ -257,11 +267,6 @@ export const generateControlCambioPdf = (fichaData, fileName = 'control-de-cambi
   drawRow(doc, y, [
     { w: 50, text: 'Numero de control', bold: true },
     { w: W - 50, text: ficha.numeroControl },
-  ]);
-  y += ROW;
-  drawRow(doc, y, [
-    { w: 50, text: 'Version', bold: true },
-    { w: W - 50, text: ficha.version },
   ]);
   y += ROW;
   y = optionRow(doc, y, 'Ambiente', [
@@ -296,13 +301,14 @@ export const generateControlCambioPdf = (fichaData, fileName = 'control-de-cambi
   y = titleBlock(doc, y, 'Analisis de Impacto');
   drawRow(doc, y, [
     { w: 22, text: 'Fecha', bold: true }, { w: 28, text: ficha.fechaAnalisis },
-    { w: 42, text: 'Elementos afectados', bold: true }, { w: 40, text: ficha.elementosAfectados },
-    { w: 28, text: 'Cambios menores', bold: true, size: 8 }, { w: 26, text: '' },
+    { w: 46, text: 'Elementos afectados', bold: true }, { w: 90, text: '' },
   ]);
-  checkbox(doc, M + 160 + 8, y + 1.6, ficha.cambiosMenores);
-  y += ROW;
-  drawRow(doc, y, [{ w: W - 26, text: 'Cambios mayores', bold: true }, { w: 26, text: '' }]);
-  checkbox(doc, M + W - 18, y + 1.6, ficha.cambiosMayores);
+  checkbox(doc, M + 22 + 28 + 46 + 8, y + 1.6, ficha.cambiosMenores);
+  doc.setFont(FONT, 'normal');
+  doc.setFontSize(10);
+  doc.text('Cambios menores', M + 22 + 28 + 46 + 13, y + 4.3);
+  checkbox(doc, M + 22 + 28 + 46 + 50, y + 1.6, ficha.cambiosMayores);
+  doc.text('Cambios mayores', M + 22 + 28 + 46 + 55, y + 4.3);
   y += ROW;
   y = ensure(y, 16);
   y = textBlock(doc, y, 'Descripcion:', ficha.descripcionImpacto, 14);
@@ -344,13 +350,13 @@ export const generateControlCambioPdf = (fichaData, fileName = 'control-de-cambi
   const noteH = 8 + noteLines.length * 3.6;
   doc.rect(M, y, W, noteH, 'S');
   doc.setFont(FONT, 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(10);
   doc.text(noteLines, M + 2, y + 4.5);
   y += noteH + 8;
 
   y = ensure(y, 52);
   doc.setFont(FONT, 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.text('Nombre y Firma', 55, y, { align: 'center' });
   doc.text('Nombre y Firma', 155, y, { align: 'center' });
   doc.setFont(FONT, 'normal');
@@ -360,25 +366,27 @@ export const generateControlCambioPdf = (fichaData, fileName = 'control-de-cambi
     const fontSize = textWidth > width ? 9 * width / textWidth : 9;
     doc.setFontSize(fontSize);
     doc.text(text || ' ', center, lineY - 1, { align: 'center' });
-    doc.setFontSize(9);
+    doc.setFontSize(10);
   };
   drawNameAboveLine(ficha.firmanteArea, 55, 70, y + 11);
   drawNameAboveLine(ficha.firmanteDesarrollo, 155, 76, y + 11);
   doc.line(M + 10, y + 11, M + 80, y + 11);
   doc.line(M + 110, y + 11, M + W, y + 11);
-  doc.setFontSize(8);
+  doc.setFont(FONT, 'bold');
+  doc.setFontSize(10);
   doc.text('Area Solicitante', 55, y + 16, { align: 'center' });
   doc.text('Responsable de Desarrollo', 155, y + 16, { align: 'center' });
   doc.text(doc.splitTextToSize(ficha.cargoArea, 70), 55, y + 20, { align: 'center' });
   doc.text(doc.splitTextToSize(ficha.cargoDesarrollo, 70), 155, y + 20, { align: 'center' });
   y += 36;
   doc.setFont(FONT, 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.text('Nombre y Firma', M + W / 2, y, { align: 'center' });
   doc.setFont(FONT, 'normal');
   drawNameAboveLine(ficha.firmanteDirector, M + W / 2, 86, y + 11);
   doc.line(M + 50, y + 11, M + W - 50, y + 11);
-  doc.setFontSize(8);
+  doc.setFont(FONT, 'bold');
+  doc.setFontSize(10);
   doc.text(doc.splitTextToSize(ficha.cargoDirector, 120), M + W / 2, y + 16, { align: 'center' });
 
   footer(doc);

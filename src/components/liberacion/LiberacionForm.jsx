@@ -44,13 +44,13 @@ const initialForm = {
   ambiente_produccion: false,
   tipo_liberacion: '',
   prioridad: '',
-  entregable_frontend_estado: '',
-  entregable_backend_estado: '',
-  entregable_bd_estado: '',
-  entregable_variables_estado: '',
+  entregable_frontend_estado: 'no_aplica',
+  entregable_backend_estado: 'no_aplica',
+  entregable_bd_estado: 'no_aplica',
+  entregable_variables_estado: 'no_aplica',
   observaciones_finales: '',
-  validacion_pruebas_resultado: '',
-  validacion_acceso_resultado: '',
+  validacion_pruebas_resultado: 'No aplica',
+  validacion_acceso_resultado: 'No aplica',
   responsable_infraestructura_id: '',
   responsable_infraestructura: '',
   cargo_infraestructura: 'Subdirector de Operaciones, Seguridad y Proyectos Tecnológicos',
@@ -624,6 +624,19 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
           <div className="grid gap-4 md:grid-cols-2">
             {ENTREGABLES.map(({ label, include, routeKey, statusKey, icon: Icon }) => {
               const status = formData[statusKey];
+              const showRouteField = status === 'aplica';
+
+              const handleStatusChange = (value) => {
+                setFormData((prev) => {
+                  const updated = { ...prev, [statusKey]: value };
+                  // Clear route field when selecting 'no_aplica'
+                  if (value === 'no_aplica') {
+                    updated[routeKey] = '';
+                  }
+                  return updated;
+                });
+              };
+
               return (
                 <div key={statusKey} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                   <div className="mb-4 flex items-start gap-3">
@@ -635,16 +648,20 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                       <p className="mt-1 text-xs leading-relaxed text-gray-500">{include}</p>
                     </div>
                   </div>
-                  <FieldLabel htmlFor={routeKey}>Ruta o archivo</FieldLabel>
-                  <input
-                    id={routeKey}
-                    type="text"
-                    name={routeKey}
-                    value={formData[routeKey]}
-                    onChange={handleChange}
-                    placeholder="Ruta, repositorio o nombre de archivo"
-                    className={inputClass}
-                  />
+                  {showRouteField && (
+                    <>
+                      <FieldLabel htmlFor={routeKey}>Ruta o archivo</FieldLabel>
+                      <input
+                        id={routeKey}
+                        type="text"
+                        name={routeKey}
+                        value={formData[routeKey]}
+                        onChange={handleChange}
+                        placeholder="Ruta, repositorio o nombre de archivo"
+                        className={inputClass}
+                      />
+                    </>
+                  )}
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     {[
                       ['aplica', 'Aplica'],
@@ -653,7 +670,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                       <button
                         key={value}
                         type="button"
-                        onClick={() => setFormData((prev) => ({ ...prev, [statusKey]: value }))}
+                        onClick={() => handleStatusChange(value)}
                         className={`rounded-xl border-2 px-3 py-2.5 text-sm font-semibold transition ${
                           status === value
                             ? value === 'aplica'
@@ -705,14 +722,20 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
               })}
             </div>
             <SectionCard icon={FiFileText} title="Observaciones">
-              <textarea
-                name="observaciones_finales"
-                value={formData.observaciones_finales}
-                onChange={handleChange}
-                rows={4}
-                placeholder="Hallazgos, restricciones o notas que deban quedar en la ficha."
-                className={inputClass}
-              />
+              <div>
+                <textarea
+                  name="observaciones_finales"
+                  value={formData.observaciones_finales}
+                  onChange={handleChange}
+                  rows={4}
+                  maxLength={500}
+                  placeholder="Hallazgos, restricciones o notas que deban quedar en la ficha."
+                  className={inputClass}
+                />
+                <p className="mt-2 text-right text-xs text-gray-500">
+                  {formData.observaciones_finales.length}/500 caracteres
+                </p>
+              </div>
             </SectionCard>
           </div>
         );
@@ -828,7 +851,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                       )}
                     </div>
                   )}
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-1">
                     <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition hover:border-[#8A2036]/40 hover:bg-[#8A2036]/5">
                       <FiFileText className="mb-2 text-[#8A2036]" size={22} />
                       <span className="text-sm font-semibold text-gray-800">Cargar PDF</span>
@@ -841,7 +864,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                         className="sr-only"
                       />
                     </label>
-                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition hover:border-[#8A2036]/40 hover:bg-[#8A2036]/5">
+                    {/* <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center transition hover:border-[#8A2036]/40 hover:bg-[#8A2036]/5">
                       <FiCamera className="mb-2 text-[#8A2036]" size={22} />
                       <span className="text-sm font-semibold text-gray-800">Escanear con cámara</span>
                       <span className="mt-1 text-xs text-gray-500">JPEG, PNG o WEBP</span>
@@ -853,7 +876,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                         onChange={(event) => setDocumentoPdf(event.target.files?.[0] || null)}
                         className="sr-only"
                       />
-                    </label>
+                    </label> */}
                   </div>
                   {documentoPdf ? (
                     <div className="mt-3 flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">

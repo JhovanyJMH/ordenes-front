@@ -166,9 +166,9 @@ const footer = (doc) => {
   doc.setLineWidth(0.2);
   doc.setTextColor(0, 0, 0);
   doc.setFont('arial', 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.text('Dirección General de Desarrollo Institucional y Tecnologías de la Información', M + 70, 263, { align: 'left' });
-  doc.text('Subdirección de Desarrollo de Software y Base de Datos', M + 70, 269, { align: 'left' });
+  doc.text('Subdirección de Desarrollo de Software y Base de Datos', M + 103, 269, { align: 'left' });
 };
 
 const titleBlock = (doc, y, label) => {
@@ -282,10 +282,12 @@ export const generateLiberacionFichaPdf = (fichaData, fileName = 'ficha-liberaci
 
     const deliveryNote = 'El Área de Desarrollo hace entrega de los componentes descritos en el presente documento para su implementación en el ambiente correspondiente. La validación, configuración, respaldo, publicación y operación en servidores institucionales será responsabilidad de la Subdirección de Operaciones, Seguridad y Proyectos Tecnológicos conforme a sus procedimientos.';
     doc.setFont('arial', 'normal');
-    doc.setFontSize(8.5);
+    doc.setFontSize(11);
     const noteLines = doc.splitTextToSize(deliveryNote, W);
     doc.text(noteLines, M, y + 3.5, { align: 'justify', maxWidth: W });
     y += noteLines.length * 3.5 + 4;
+
+    y += 9;
 
     burgundyRow(y, [
       { w: 29, text: 'Entregable' },
@@ -298,9 +300,9 @@ export const generateLiberacionFichaPdf = (fichaData, fileName = 'ficha-liberaci
     ficha.entregables.forEach((item) => {
       const rowHeight = item.nombre === 'Variables de entorno' ? 15 : 11;
       drawRow(doc, y, [
-        { w: 29, text: item.nombre, size: 9 },
-        { w: 62, text: item.incluye, size: 9 },
-        { w: 58, text: item.ruta, size: 9 },
+        { w: 29, text: item.nombre, size: 11 },
+        { w: 62, text: item.incluye, size: 11 },
+        { w: 58, text: item.ruta, size: 11 },
         { w: 18.5, text: '' },
         { w: 18.5, text: '' },
       ], rowHeight);
@@ -316,7 +318,7 @@ export const generateLiberacionFichaPdf = (fichaData, fileName = 'ficha-liberaci
     let y = 40;
     const validationNote = 'El Área de Desarrollo hace entrega de los componentes necesarios para la liberación del sistema a la Subdirección de Operaciones, Seguridad y Proyectos Tecnológicos, quien será responsable de la configuración, publicación y validación operativa en los servidores institucionales.';
     doc.setFont('arial', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(11);
     const noteLines = doc.splitTextToSize(validationNote, W);
     doc.text(noteLines, M, y + 3.5, { align: 'justify', maxWidth: W });
     y += noteLines.length * 3.8 + 5;
@@ -337,8 +339,8 @@ export const generateLiberacionFichaPdf = (fichaData, fileName = 'ficha-liberaci
     ].forEach(([label, responsible, result]) => {
       const rowHeight = 18;
       drawRow(doc, y, [
-        { w: 59, text: label, size: 9 },
-        { w: 39, text: responsible, size: 9 },
+        { w: 59, text: label, size: 11 },
+        { w: 39, text: responsible, size: 11 },
         { w: 29.33, text: '' },
         { w: 29.33, text: '' },
         { w: 29.34, text: '' },
@@ -354,7 +356,7 @@ export const generateLiberacionFichaPdf = (fichaData, fileName = 'ficha-liberaci
     drawRow(doc, y, [{ w: W, text: pad(ficha.validacion.observaciones) }], 35);
     y += 42;
     doc.setFont('arial', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(11);
     const signatureNote = 'La firma del presente documento valida la entrega de componentes por parte del Área de Desarrollo y la Subdirección de Operaciones, Seguridad y Proyectos Tecnológicos.';
     const signatureLines = doc.splitTextToSize(signatureNote, W);
     doc.text(signatureLines, M, y + 3.5, { align: 'justify', maxWidth: W });
@@ -382,11 +384,11 @@ export const generateLiberacionFichaPdf = (fichaData, fileName = 'ficha-liberaci
     doc.line(M + 8, y + 16, M + 86, y + 16);
     doc.line(M + 100, y + 16, M + W - 8, y + 16);
     doc.setFont('arial', 'bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(10);
     doc.text('Responsable de Recepción y Publicación', leftCenter, y + 22, { align: 'center', maxWidth: 78 });
     doc.text('Responsable de Entrega Técnica', rightCenter, y + 22, { align: 'center', maxWidth: 78 });
     doc.setFont('arial', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(10);
     doc.text(ficha.responsables.cargoInfraestructura, leftCenter, y + 27, { align: 'center', maxWidth: 78 });
     doc.text(ficha.responsables.cargoDesarrollo, rightCenter, y + 27, { align: 'center', maxWidth: 78 });
   };
