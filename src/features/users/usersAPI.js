@@ -8,7 +8,9 @@ const getAuthHeader = (token) => ({
 });
 
 export const fetchUsersApi = async (page = 1, search = '') => {
-  const response = await api.get(`/users?page=${page}&search=${search}`);
+  const response = await api.get('/users', {
+    params: { page, search },
+  });
   return response.data;
 };
 

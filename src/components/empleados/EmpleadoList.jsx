@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchEmpleados, deleteEmpleado, clearError, clearSuccessMessage } from '../../features/empleados/empleadosSlice';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { SearchBar } from '../SearchBar';
+import { FiSearch } from 'react-icons/fi';
 
 const EmpleadoList = () => {
   const dispatch = useDispatch();
@@ -49,160 +49,178 @@ const EmpleadoList = () => {
     setCurrentPage(pageNumber);
   };
 
-  const handleSearch = (term) => {
-    setSearchTerm(term);
+  const [searchInput, setSearchInput] = useState('');
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setSearchTerm(searchInput.trim());
     setCurrentPage(1);
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-colorPrimario"></div>
+      <div className="flex h-32 items-center justify-center rounded-2xl border border-[#f1e0e1] bg-white shadow-sm">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#8A2036] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <>
-      <SearchBar 
-        searchPath="/get-search-empleados"
-        normalPath="/get-empleados"
-        showButton={false}
-        onSearch={handleSearch}
-      />
-      <div className="overflow-x-auto relative shadow-md sm:rounded-lg">
-        <table className="w-full text-sm text-left text-gray-700">
-          <thead className="text-base text-white uppercase bg-colorPrimario">
-            <tr>
-              <th scope="col" className="py-2 px-4">ID</th>
-              <th scope="col" className="py-2 px-4">Opciones</th>
-              <th scope="col" className="py-2 px-4">Nombre</th>
-              <th scope="col" className="py-2 px-4">Clave</th>
-              <th scope="col" className="py-2 px-4">Puesto</th>
-              <th scope="col" className="py-2 px-4">Correo</th>
-              <th scope="col" className="py-2 px-4">Estatus</th>
-            </tr>
-          </thead>
-          <tbody className={`${loading ? 'hidden' : ''} uppercase text-xs`}>
-            {empleados.map((emp) => (
-              <tr key={emp.id} className={`border-b bg-gray-50 hover:bg-orange-100 transition-all duration-300 border-colorTerciario`}>
-                <td className="py-1 px-4">{emp.id}</td>
-                <th scope="row" className="flex items-center py-1 px-4 space-x-3 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex items-center">
+    <div className="space-y-4">
+      <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f6e8df] text-[#8A2036] shadow-sm ring-1 ring-[#f3d2c6]">
+              <FiSearch size={16} />
+            </span>
+          </span>
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Buscar por nombre, clave o correo..."
+            className="w-full rounded-2xl border border-[#eed7d5] bg-white py-3 pl-14 pr-4 text-sm text-gray-700 shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:border-[#8A2036] focus:outline-none focus:ring-4 focus:ring-[#8A2036]/10"
+          />
+        </div>
+        <button
+          type="submit"
+          className="rounded-2xl bg-gradient-to-r from-[#8A2036] to-[#a83049] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#8A2036]/20 transition-all duration-200 hover:translate-y-[-1px] hover:shadow-xl hover:shadow-[#8A2036]/25"
+        >
+          Buscar
+        </button>
+      </form>
+
+      <div className="overflow-hidden rounded-2xl border border-[#f1dfe2] bg-white shadow-[0_18px_45px_rgba(138,32,54,0.08)] ring-1 ring-[#f6e4e8]">
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-0 text-left text-xs sm:text-sm">
+            <thead className="bg-gradient-to-r from-[#8A2036] via-[#9b2740] to-[#a9304a] text-xs font-bold uppercase tracking-[0.14em] text-white">
+              <tr>
+                <th className="px-3 py-3 text-left sm:px-4">ID</th>
+                <th className="px-3 py-3 text-left sm:px-4">Nombre</th>
+                <th className="px-3 py-3 text-left sm:px-4">Clave</th>
+                <th className="px-3 py-3 text-left sm:px-4">Puesto</th>
+                <th className="px-3 py-3 text-left sm:px-4">Correo</th>
+                <th className="px-3 py-3 text-left sm:px-4">Estatus</th>
+                <th className="px-3 py-3 text-center sm:px-4">Acción</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#f5e4e6] bg-white">
+              {empleados.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f9e7e5] text-[#8A2036]">—</span>
+                      <span>Sin empleados registrados</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                empleados.map((emp) => (
+                  <tr key={emp.id} className="transition-colors duration-200 odd:bg-white even:bg-[#fffaf8] hover:bg-[#fff3f2]">
+                    <td className="whitespace-nowrap px-3 py-3 font-bold text-[#2e1f22] sm:px-4">{emp.id}</td>
+                    <td className="max-w-[220px] px-3 py-3 text-gray-700 sm:px-4">
+                      <span className="line-clamp-2 font-medium">{emp.nombre} {emp.apellidos}</span>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-gray-700 sm:px-4">{emp.clave}</td>
+                    <td className="max-w-[200px] px-3 py-3 text-gray-700 sm:px-4">
+                      <span className="line-clamp-2">{emp.puesto}</span>
+                    </td>
+                    <td className="max-w-[200px] px-3 py-3 text-gray-700 sm:px-4">
+                      <span className="line-clamp-2 lowercase">{emp.email}</span>
+                    </td>
+                    <td className="px-3 py-3 sm:px-4">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                        Number(emp.estatus) === 1
+                          ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200'
+                          : 'bg-stone-100 text-stone-700 ring-1 ring-inset ring-stone-200'
+                      }`}>
+                        {Number(emp.estatus) === 1 ? 'ACTIVO' : 'INACTIVO'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-center sm:px-4">
                       <Link
                         to={`editar/${emp.id}`}
                         title="Editar"
-                        className="text-[#bc955b] hover:text-white border-2 border-[#bc955b] hover:bg-[#bc955b] focus:ring-2 focus:outline-none focus:ring-[#bc955b] font-medium rounded-lg text-sm px-3 py-2.5 text-center mr-2 mb-2"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#BC955B]/30 bg-[#fff7f7] px-3 py-1.5 text-[11px] font-bold text-[#BC955B] transition-all duration-200 hover:bg-[#BC955B] hover:text-white hover:shadow-md hover:shadow-[#BC955B]/20"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 icon icon-tabler icon-tabler-pencil" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                          <path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -4 -4l-10.5 10.5v4"></path>
-                          <path d="M13.5 6.5l4 4"></path>
-                        </svg>
+                        Editar
                       </Link>
-                      {/* <button
-                        onClick={() => handleDelete(emp.id)}
-                        title="Eliminar"
-                        className="text-colorPrimario bg-white border-2 border-colorPrimario hover:bg-colorPrimario hover:text-white focus:ring-2 focus:outline-none focus:ring-colorPrimario font-medium rounded-lg text-sm px-3 py-2.5 text-center mb-2 transition-colors duration-200"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 icon icon-tabler icon-tabler-trash" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                          <path d="M4 7h16"></path>
-                          <path d="M10 11v6"></path>
-                          <path d="M14 11v6"></path>
-                          <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path>
-                          <path d="M9 7V4a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path>
-                        </svg>
-                      </button> */}
-                    </div>
-                  </div>
-                </th>
-                <td className="py-1 px-4">{emp.nombre} {emp.apellidos}</td>
-                <td className="py-1 px-4">{emp.clave}</td>
-                <td className="py-1 px-4">{emp.puesto}</td>
-                <td className="py-1 px-4 lowercase">{emp.email}</td>
-                <td className="py-1 px-4">{Number(emp.estatus) === 1 ? 'ACTIVO' : 'INACTIVO'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Paginación y contador de resultados */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
-        <div className="text-sm text-gray-600 text-center sm:text-left">
-          Mostrando <span className="font-medium">{pagination.from || 0}</span> a <span className="font-medium">{pagination.to || 0}</span> de <span className="font-medium">{pagination.total || 0}</span> resultados
-        </div>
-
+      <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-[#f3e3e1] bg-[#fffdfd] px-3 py-3 shadow-sm sm:flex-row sm:px-4">
+        <p className="text-sm font-medium text-gray-600">
+          Mostrando {pagination.from || 0} a {pagination.to || 0} de {pagination.total || 0}
+        </p>
         {pagination.lastPage > 1 && (
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <button
-              onClick={() => handlePageChange(Math.max(1, pagination.currentPage - 1))}
-              disabled={pagination.currentPage === 1}
-              className="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              type="button"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="rounded-xl border border-[#e8d3d4] bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 transition hover:border-[#8A2036]/30 hover:text-[#8A2036] disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
             >
               Anterior
             </button>
-
             {(() => {
               const pages = [];
               const pagesToShow = window.innerWidth < 640 ? 5 : 10;
-              let startPage = Math.max(1, pagination.currentPage - Math.floor(pagesToShow / 2));
+              let startPage = Math.max(1, currentPage - Math.floor(pagesToShow / 2));
               let endPage = Math.min(pagination.lastPage, startPage + pagesToShow - 1);
-
               if (endPage - startPage + 1 < pagesToShow) {
                 startPage = Math.max(1, endPage - pagesToShow + 1);
               }
-
               if (startPage > 1) {
                 pages.push(1);
                 if (startPage > 2) {
                   pages.push('...');
                 }
               }
-
               for (let i = startPage; i <= endPage; i++) {
                 pages.push(i);
               }
-
               if (endPage < pagination.lastPage) {
                 if (endPage < pagination.lastPage - 1) {
                   pages.push('...');
                 }
                 pages.push(pagination.lastPage);
               }
-
-              return pages.map((p, idx) => (
-                typeof p === 'number' ? (
-                  <button
-                    key={p}
-                    onClick={() => handlePageChange(p)}
-                    className={`px-2 sm:px-3 py-1 rounded-md border text-sm ${
-                      p === pagination.currentPage
-                        ? 'bg-colorPrimario text-white border-colorPrimario'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ) : (
-                  <span key={`ellipsis-${idx}`} className="px-2 text-gray-500">{p}</span>
-                )
+              return pages.map((page, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => typeof page === 'number' && handlePageChange(page)}
+                  disabled={typeof page !== 'number' || currentPage === page}
+                  className={`rounded-xl px-2.5 py-1.5 text-sm font-semibold transition sm:px-3 ${
+                    typeof page === 'number'
+                      ? currentPage === page
+                        ? 'bg-[#8A2036] text-white shadow-md shadow-[#8A2036]/20'
+                        : 'border border-[#e8d3d4] bg-white text-gray-700 hover:border-[#8A2036]/30 hover:text-[#8A2036]'
+                      : 'cursor-default border border-transparent bg-transparent text-gray-400'
+                  }`}
+                >
+                  {page}
+                </button>
               ));
             })()}
-
             <button
-              onClick={() => handlePageChange(Math.min(pagination.lastPage, pagination.currentPage + 1))}
-              disabled={pagination.currentPage === pagination.lastPage}
-              className="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              type="button"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === pagination.lastPage}
+              className="rounded-xl border border-[#e8d3d4] bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 transition hover:border-[#8A2036]/30 hover:text-[#8A2036] disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
             >
               Siguiente
             </button>
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 

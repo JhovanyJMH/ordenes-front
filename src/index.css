@@ -12,3 +12,18 @@
     transform: translateY(0);
   }
 }
+
+@keyframes fade-zoom {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fade-zoom {
+  animation: fade-zoom 0.3s ease-out;
+}

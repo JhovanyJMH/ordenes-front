@@ -421,10 +421,6 @@ const UsuarioEdit = () => {
       userData.ap_paterno = userData.ap_paterno.toUpperCase();
       userData.ap_materno = userData.ap_materno.toUpperCase();
 
-      // Agregar información de paginación para el backend
-      userData.per_page = 50; // Valor por defecto
-      userData.search = ''; // Búsqueda vacía por defecto
-     
       const result = await dispatch(updateUser({ id: parseInt(id), userData }));
       
       if (result.meta.requestStatus === 'fulfilled') {
@@ -435,7 +431,10 @@ const UsuarioEdit = () => {
           timer: 2000,
           showConfirmButton: false
         });
-        navigate('/catalogo-usuarios');
+        // Esperar un momento para que el estado se actualice con pagination_info
+        setTimeout(() => {
+          navigate('/catalogo-usuarios');
+        }, 100);
       }
     } catch (err) {
       Swal.fire({

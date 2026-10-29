@@ -241,9 +241,6 @@ const UsuarioForm = () => {
       name: data.name.toUpperCase(),
       ap_paterno: data.ap_paterno.toUpperCase(),
       ap_materno: data.ap_materno.toUpperCase(),
-      // Agregar información de paginación para el backend
-      per_page: 50, // Valor por defecto
-      search: '' // Búsqueda vacía por defecto
     };
 
     try {

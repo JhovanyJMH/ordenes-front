@@ -15,6 +15,7 @@ import GeneradorDocumentosPage from '../pages/GeneradorDocumentosPage';
 import LiberacionPage from '../pages/LiberacionPage';
 import ControlCambioPage from '../pages/ControlCambioPage';
 import AdminRoute from '../components/AdminRoute';
+import BdOfficeRoute from '../components/BdOfficeRoute';
 import SistemasPage from '../pages/SistemasPage';
 
 const ProtectedRoutes = () => {
@@ -24,9 +25,9 @@ const ProtectedRoutes = () => {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/solicitudes-general" element={<AdminRoute><SolicitudesGeneralPage /></AdminRoute>} />
         <Route path="/informes" element={<AdminRoute><InformesPage /></AdminRoute>} />
-        <Route path="/generador-documentos" element={<AdminRoute><GeneradorDocumentosPage /></AdminRoute>} />
-        <Route path="/fichas-liberacion/*" element={<AdminRoute><LiberacionPage /></AdminRoute>} />
-        <Route path="/control-cambios/*" element={<AdminRoute><ControlCambioPage /></AdminRoute>} />
+        <Route path="/generador-documentos" element={<BdOfficeRoute><GeneradorDocumentosPage /></BdOfficeRoute>} />
+        <Route path="/fichas-liberacion/*" element={<BdOfficeRoute><LiberacionPage /></BdOfficeRoute>} />
+        <Route path="/control-cambios/*" element={<BdOfficeRoute><ControlCambioPage /></BdOfficeRoute>} />
         <Route path="/catalogo-usuarios/*" element={<UsersPage />} />
         <Route path="/catalogo-dependencias/*" element={<DependenciasPage />} />
         <Route path="/catalogo-adscripciones/*" element={<AdscripcionesPage />} />

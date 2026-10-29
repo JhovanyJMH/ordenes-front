@@ -6,6 +6,7 @@ import UsuarioList from '../components/users/UsuarioList';
 import UsuarioForm from '../components/users/UsuarioForm';
 import UsuarioEdit from '../components/users/UsuarioEdit';
 import Swal from 'sweetalert2';
+import { FiChevronRight, FiUsers, FiUserPlus } from 'react-icons/fi';
 
 const UsersPage = () => {
   const dispatch = useDispatch();
@@ -48,6 +49,23 @@ const UsersPage = () => {
 
   // Solo mostrar en la lista
   const isListPage = location.pathname === "/catalogo-usuarios" || location.pathname === "/catalogo-usuarios/";
+  const isRegisterPage = location.pathname === "/catalogo-usuarios/registrar";
+  const isEditPage = location.pathname.startsWith("/catalogo-usuarios/editar");
+
+  // Breadcrumb dinámico
+  const getBreadcrumb = () => {
+    const items = [
+      { label: 'Usuarios', path: '/catalogo-usuarios', icon: <FiUsers size={16} /> },
+    ];
+
+    if (isRegisterPage) {
+      items.push({ label: 'Registrar', path: '/catalogo-usuarios/registrar', icon: <FiUserPlus size={16} /> });
+    } else if (isEditPage) {
+      items.push({ label: 'Editar', path: location.pathname, icon: <FiUserPlus size={16} /> });
+    }
+
+    return items;
+  };
 
   return (
     <div className="bg-[#f4f7fa] w-full">
@@ -56,11 +74,26 @@ const UsersPage = () => {
         <h1 className="text-5xl font-extrabold text-colorPrimario mb-1 md:mb-0 text-left">
           Administración de<span className="text-gray-500 font-normal"> usuarios</span>
         </h1>
-        {/* Breadcrumb en otra fila */}
-        <nav className="text-sm text-gray-500 flex items-center gap-2 mt-2 md:mt-0 justify-start md:justify-end w-full md:w-auto mb-8">
-          <Link to="/catalogo-usuarios" className="text-colorPrimario font-semibold hover:underline">Lista de usuarios</Link>
-          <span className="mx-1">&gt;</span>
-          <Link to="/catalogo-usuarios/registrar" className="hover:underline">Registrar usuario</Link>
+        {/* Breadcrumb moderno */}
+        <nav className="flex items-center gap-2 mt-4 mb-8">
+          {getBreadcrumb().map((item, index) => (
+            <div key={item.path} className="flex items-center gap-2">
+              {index > 0 && (
+                <FiChevronRight size={14} className="text-gray-400" />
+              )}
+              <Link
+                to={item.path}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  index === getBreadcrumb().length - 1
+                    ? 'bg-[#BC955B] text-white shadow-md shadow-[#BC955B]/20'
+                    : 'bg-[#f5e8e0] text-[#BC955B] hover:bg-[#BC955B] hover:text-white'
+                }`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            </div>
+          ))}
         </nav>
        
         {/* Tabla de usuarios */}

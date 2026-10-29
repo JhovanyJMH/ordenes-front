@@ -14,7 +14,7 @@ function SidebarLinkGroup({ children, activecondition, bloqueo = false }) {
   };
 
   return (
-    <li className={`px-3 py-2 rounded-sm mb-0.5 last:mb-0 ${activecondition && 'bg-colorAuxiliar'}`}>
+    <li className="mb-0.5 last:mb-0">
       {children(handleClick, open)}
     </li>
   );

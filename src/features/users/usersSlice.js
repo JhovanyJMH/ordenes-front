@@ -18,10 +18,9 @@ const getAuthHeader = (token) => ({
 // Obtener usuarios con paginación
 export const fetchUsers = createAsyncThunk(
   'users/fetchUsers',
-  async ({ page = 1, search = '' }, { getState, rejectWithValue }) => {
+  async ({ page = 1, search = '' }, { rejectWithValue }) => {
     try {
-      const token = getState().auth.token;
-      return await fetchUsersApi(page, search, token);
+      return await fetchUsersApi(page, search);
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Error al obtener usuarios');
     }
@@ -113,7 +112,7 @@ const usersSlice = createSlice({
     pagination: {
       currentPage: 1,
       lastPage: 1,
-      perPage: 10,
+      perPage: 5,
       total: 0,
       from: 0,
       to: 0
@@ -129,10 +128,8 @@ const usersSlice = createSlice({
       state.successMessage = null;
     },
     clearHighlightedUser: (state) => {
-      
       state.highlightedUser = null;
       state.paginationInfo = null;
-      
     },
   },
   extraReducers: (builder) => {
@@ -166,10 +163,9 @@ const usersSlice = createSlice({
       })
       .addCase(createUser.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload.pagination_info) {
-          state.paginationInfo = action.payload.pagination_info;
-          state.highlightedUser = action.payload.user.id;
-        }
+        const user = action.payload.user || action.payload;
+        state.highlightedUser = user?.id ?? null;
+        state.paginationInfo = action.payload.pagination_info || { page: 1 };
         state.successMessage = 'Usuario creado exitosamente';
       })
       .addCase(createUser.rejected, (state, action) => {
@@ -195,10 +191,9 @@ const usersSlice = createSlice({
       })
       .addCase(updateUser.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload.pagination_info) {
-          state.paginationInfo = action.payload.pagination_info;
-          state.highlightedUser = action.payload.user.id;
-        }
+        const user = action.payload.user || action.payload;
+        state.highlightedUser = user?.id ?? null;
+        state.paginationInfo = action.payload.pagination_info || { page: 1 };
         state.successMessage = 'Usuario actualizado exitosamente';
       })
       .addCase(updateUser.rejected, (state, action) => {

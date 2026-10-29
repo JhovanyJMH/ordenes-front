@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers, deleteUser, clearError, clearSuccessMessage, clearHighlightedUser } from '../../features/users/usersSlice';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { SearchBar } from '../SearchBar';
+import { FiSearch, FiPlus, FiTrash2 } from 'react-icons/fi';
 
 const UsuarioList = () => {
   const dispatch = useDispatch();
@@ -18,58 +18,55 @@ const UsuarioList = () => {
   } = useSelector((state) => state.users);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isHighlighted, setIsHighlighted] = useState(false);
-  const [hasNavigated, setHasNavigated] = useState(false);
   const highlightedRowRef = useRef(null);
+  const skipFetchRef = useRef(false);
+  const [searchInput, setSearchInput] = useState('');
 
-  // Efecto para manejar la navegación y carga de datos
+  const isHighlightedRow = (userId) =>
+    highlightedUser != null && Number(highlightedUser) === Number(userId);
+
   useEffect(() => {
-    // Si hay información de paginación del backend y no hemos navegado aún
-    if (paginationInfo && !hasNavigated) {
-      setCurrentPage(paginationInfo.page);
-      setSearchTerm(''); // Resetear búsqueda si es necesario
-      setHasNavigated(true);
-      dispatch(fetchUsers({ page: paginationInfo.page, search: '' }));
-    } else {
-      // Para navegación manual o carga inicial
-      dispatch(fetchUsers({ page: currentPage, search: searchTerm }));
-    }
-  }, [dispatch, currentPage, searchTerm, paginationInfo, hasNavigated]);
+    if (!paginationInfo?.page) return;
 
-  // Efecto para la animación de parpadeo y scroll
+    const targetPage = Math.max(1, Number(paginationInfo.page) || 1);
+
+    skipFetchRef.current = true;
+    setCurrentPage(targetPage);
+    setSearchTerm('');
+    setSearchInput('');
+    dispatch(fetchUsers({ page: targetPage, search: '' }));
+  }, [dispatch, paginationInfo]);
+
   useEffect(() => {
-    if (highlightedUser) {
-      setIsHighlighted(true);
-      
-      // Scroll suave hacia el elemento destacado después de que se renderice
-      setTimeout(() => {
-        if (highlightedRowRef.current) {
-          highlightedRowRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center'
-          });
-        }
-      }, 500);
-
-    // const interval = setInterval(() => {
-    //   setIsHighlighted(prev => !prev);
-    // }, 1000); // Parpadeo cada segundo
-
-      // Limpiar el resaltado después de 5 segundos
-     //const clearHighlightTimeout = setTimeout(() => {
-     //  console.log('Limpiando usuario destacado después de 5 segundos');
-     //  dispatch(clearHighlightedUser());
-     //}, 5000);
-
-      return () => {
-    //    clearInterval(interval);
-       // clearTimeout(clearHighlightTimeout);
-        setIsHighlighted(false);
-      };
+    if (skipFetchRef.current) {
+      skipFetchRef.current = false;
+      return;
     }
-  }, [highlightedUser, dispatch]);
+    dispatch(fetchUsers({ page: currentPage, search: searchTerm }));
+  }, [dispatch, currentPage, searchTerm]);
 
-  // Limpiar mensajes después de 5 segundos
+  useEffect(() => {
+    if (highlightedUser == null || loading) return;
+    const exists = users.some((user) => isHighlightedRow(user.id));
+    if (!exists) return;
+
+    const scrollTimeout = setTimeout(() => {
+      highlightedRowRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }, 150);
+
+    const clearHighlightTimeout = setTimeout(() => {
+      dispatch(clearHighlightedUser());
+    }, 4000);
+
+    return () => {
+      clearTimeout(scrollTimeout);
+      clearTimeout(clearHighlightTimeout);
+    };
+  }, [highlightedUser, dispatch, loading, users]);
+
   useEffect(() => {
     if (error || successMessage) {
       const timer = setTimeout(() => {
@@ -82,19 +79,33 @@ const UsuarioList = () => {
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
-      title: '¿Estás seguro?',
-      text: "Esta acción eliminará el usuario. Esta operación no se puede deshacer.",
+      title: '¿Eliminar usuario?',
+      text: 'Esta acción no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#8A2036',
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar'
     });
 
     if (result.isConfirmed) {
-      dispatch(deleteUser(id));
-     
+      try {
+        await dispatch(deleteUser(id)).unwrap();
+        await Swal.fire({
+          icon: 'success',
+          title: 'Eliminado',
+          text: 'El usuario se eliminó correctamente.',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo eliminar el usuario.'
+        });
+      }
     }
   };
 
@@ -102,179 +113,247 @@ const UsuarioList = () => {
     setCurrentPage(pageNumber);
   };
 
-  const handleSearch = (term) => {
-    setSearchTerm(term);
-    setCurrentPage(1); // Resetear a la primera página al buscar
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setSearchTerm(searchInput.trim());
+    setCurrentPage(1);
   };
 
-  if (loading) {
+  const waitingForHighlightedUser =
+    highlightedUser != null && !users.some((user) => isHighlightedRow(user.id));
+
+  if (loading && (users.length === 0 || waitingForHighlightedUser)) {
     return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-colorPrimario"></div>
+      <div className="flex h-32 items-center justify-center rounded-2xl border border-[#f1e0e1] bg-white shadow-sm">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#8A2036] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <>
-      <SearchBar 
-        searchPath="/get-search-users"
-        normalPath="/get-users"
-        showButton={false}
-        onSearch={handleSearch}
-      />
-      <div className="overflow-x-auto relative shadow-md sm:rounded-lg">
-        <table className="w-full text-sm text-left text-gray-700">
-          <thead className="text-base text-white uppercase bg-colorPrimario">
-            <tr>
-              <th scope="col" className="py-2 px-4">ID</th>
-              <th scope="col" className="py-2 px-4">Opciones</th>
-              <th scope="col" className="py-2 px-4">Nombre</th>
-              <th scope="col" className="py-2 px-4">Correo Electrónico</th>
-              <th scope="col" className="py-2 px-4">Perfil</th>
-              <th scope="col" className="py-2 px-4">Status</th>
-            </tr>
-          </thead>
-          <tbody className={`${loading ? 'hidden' : ''} uppercase text-xs`}>
-            {users.map((user) => (
-              <tr
-                key={user.id}
-                ref={highlightedUser === user.id ? highlightedRowRef : null}
-                className={`border-b cursor-pointer transition-all duration-300 ${
-                  highlightedUser === user.id 
-                    ? isHighlighted 
-                      ? 'bg-orange-300 shadow-lg transform scale-[1.02]' 
-                      : 'bg-orange-200 shadow-md'
-                    : 'bg-gray-50 hover:bg-orange-100'
-                } border-colorTerciario`}
+    <div className="space-y-4">
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+          <span className="text-red-600">⚠</span>
+          {error}
+        </div>
+      )}
+      {successMessage && (
+        <div className="flex items-center gap-2 rounded-xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+          <span className="text-emerald-600">✓</span>
+          {successMessage}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <form onSubmit={handleSearch} className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f6e8df] text-[#8A2036] shadow-sm ring-1 ring-[#f3d2c6]">
+                <FiSearch size={16} />
+              </span>
+            </span>
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Buscar por nombre o correo..."
+              className="w-full rounded-2xl border border-[#eed7d5] bg-white py-3 pl-14 pr-4 text-sm text-gray-700 shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:border-[#8A2036] focus:outline-none focus:ring-4 focus:ring-[#8A2036]/10"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput('');
+                  setSearchTerm('');
+                  setCurrentPage(1);
+                }}
+                className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
+                title="Limpiar búsqueda"
               >
-                  <td className="py-1 px-4">{user.id}</td>
-                <th scope="row" className="flex items-center py-1 px-4 space-x-3 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex items-center">
-                      <Link
-                        to={`editar/${user.id}`}
-                        title="Editar"
-                        className="text-[#bc955b] hover:text-white border-2 border-[#bc955b] hover:bg-[#bc955b] focus:ring-2 focus:outline-none focus:ring-[#bc955b] font-medium rounded-lg text-sm px-3 py-2.5 text-center mr-2 mb-2"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 icon icon-tabler icon-tabler-pencil" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                          <path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -4 -4l-10.5 10.5v4"></path>
-                          <path d="M13.5 6.5l4 4"></path>
-                        </svg>
-                      </Link>
-                      {/* <button
-                        onClick={() => handleDelete(user.id)}
-                        title="Eliminar"
-                        className="text-colorPrimario bg-white border-2 border-colorPrimario hover:bg-colorPrimario hover:text-white focus:ring-2 focus:outline-none focus:ring-colorPrimario font-medium rounded-lg text-sm px-3 py-2.5 text-center mb-2 transition-colors duration-200"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                          <path d="M4 7h16"></path>
-                          <path d="M10 11v6"></path>
-                          <path d="M14 11v6"></path>
-                          <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path>
-                          <path d="M9 7V4a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path>
-                        </svg>
-                      </button> */}
-                    </div>
-                  </div>
-                </th>
-                <td className="py-1 px-4">{user.nombre_completo}</td>
-                <td className="py-1 px-4 lowercase">{user.email}</td>
-                <td className="py-1 px-4">
-                  {user.profile === '1' ? 'ADMINISTRADOR' : 
-                   user.profile === '2' ? 'OPERATIVO' : 
-                   user.profile === '3' ? 'GENERAL' : user.profile}
-                </td>
-                <td className="py-1 px-4">{user.status ? 'ACTIVO' : 'INACTIVO'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className={`${loading ? 'w-full h-32' : ''} flex items-center justify-center mt-9`}>
-          <div role="status" className={`${ loading ? '' : 'hidden' } absolute opacity-100 -translate-x-1/2 -translate-y-1/2 top-2/4 left-1/2 p-96`}>
-            <svg aria-hidden="true" className="w-28 h-28 mr-2 text-gray-400 animate-spin fill-colorPrimario" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/><path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/></svg>
-            <span className="sr-only">Loading...</span>
+                ✕
+              </button>
+            )}
           </div>
+          <button
+            type="submit"
+            className="rounded-2xl bg-[#8A2036] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#8A2036]/20 transition-all duration-200 hover:translate-y-[-1px] hover:shadow-xl hover:shadow-[#8A2036]/25"
+          >
+            Buscar
+          </button>
+        </form>
+        <Link
+          to="registrar"
+          className="inline-flex items-center gap-2 rounded-2xl bg-[#8A2036] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#8A2036]/20 transition-all duration-200 hover:translate-y-[-1px] hover:shadow-xl hover:shadow-[#8A2036]/25"
+        >
+          <FiPlus size={16} />
+          Nuevo Usuario
+        </Link>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-[#f1dfe2] bg-white shadow-[0_18px_45px_rgba(138,32,54,0.08)] ring-1 ring-[#f6e4e8]">
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-0 text-left text-xs sm:text-sm">
+            <thead className="bg-[#8A2036] text-xs font-bold uppercase tracking-[0.14em] text-white">
+              <tr>
+                <th className="px-3 py-3 text-left sm:px-4">ID</th>
+                <th className="px-3 py-3 text-center sm:px-4">Acción</th>
+                <th className="px-3 py-3 text-left sm:px-4">Nombre</th>
+                <th className="px-3 py-3 text-left sm:px-4">Correo Electrónico</th>
+                <th className="px-3 py-3 text-left sm:px-4">Perfil</th>
+                <th className="px-3 py-3 text-left sm:px-4">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#f5e4e6] bg-white">
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f9e7e5] text-[#8A2036]">—</span>
+                      <span>Sin usuarios registrados</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                users.map((user) => (
+                  <tr
+                    key={user.id}
+                    ref={isHighlightedRow(user.id) ? highlightedRowRef : null}
+                    className={`transition-colors duration-200 ${
+                      isHighlightedRow(user.id)
+                        ? 'bg-[#8A2036] text-white shadow-md'
+                        : 'odd:bg-white even:bg-[#f5edd8] hover:bg-[#efe4c5]'
+                    }`}
+                  >
+                    <td className={`whitespace-nowrap px-3 py-3 font-bold sm:px-4 ${isHighlightedRow(user.id) ? 'text-white' : 'text-[#2e1f22]'}`}>{user.id}</td>
+                    <td className="px-3 py-3 text-center sm:px-4">
+                      <div className="flex justify-center gap-2">
+                        <Link
+                          to={`editar/${user.id}`}
+                          title="Editar"
+                          className="inline-flex items-center justify-center rounded-xl border border-[#BC955B]/30 bg-[#fff7f7] p-2 text-[#BC955B] transition-all duration-200 hover:bg-[#BC955B] hover:text-white hover:shadow-md hover:shadow-[#BC955B]/20"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -4 -4l-10.5 10.5v4"></path>
+                            <path d="M13.5 6.5l4 4"></path>
+                          </svg>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(user.id)}
+                          title="Eliminar"
+                          className="inline-flex items-center justify-center rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] p-2 text-[#8A2036] transition-all duration-200 hover:bg-[#8A2036] hover:text-white hover:shadow-md hover:shadow-[#8A2036]/20"
+                        >
+                          <FiTrash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                    <td className={`max-w-[220px] px-3 py-3 sm:px-4 ${isHighlightedRow(user.id) ? 'text-white' : 'text-gray-700'}`}>
+                      <span className="line-clamp-2 font-medium">{user.nombre_completo || '—'}</span>
+                    </td>
+                    <td className={`max-w-[200px] px-3 py-3 sm:px-4 ${isHighlightedRow(user.id) ? 'text-white/95' : 'text-gray-700'}`}>
+                      <span className="line-clamp-2 lowercase">{user.email || '—'}</span>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-gray-700 sm:px-4">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                        user.profile === '1'
+                          ? 'bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-200'
+                          : user.profile === '2'
+                          ? 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200'
+                          : 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-200'
+                      }`}>
+                        {user.profile === '1' ? 'ADMINISTRADOR' : user.profile === '2' ? 'OPERATIVO' : user.profile === '3' ? 'GENERAL' : user.profile || '—'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 sm:px-4">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                        user.status
+                          ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200'
+                          : 'bg-stone-100 text-stone-700 ring-1 ring-inset ring-stone-200'
+                      }`}>
+                        {user.status ? 'ACTIVO' : 'INACTIVO'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Paginación y contador de resultados */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
-        <div className="text-sm text-gray-600 text-center sm:text-left">
-          Mostrando <span className="font-medium">{pagination.from || 0}</span> a <span className="font-medium">{pagination.to || 0}</span> de <span className="font-medium">{pagination.total || 0}</span> resultados
-        </div>
-        
+      <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-[#f3e3e1] bg-[#fffdfd] px-3 py-3 shadow-sm sm:flex-row sm:px-4">
+        <p className="text-sm font-medium text-gray-600">
+          Mostrando <span className="font-bold text-[#8A2036]">{pagination.from || 0}</span> a <span className="font-bold text-[#8A2036]">{pagination.to || 0}</span> de <span className="font-bold text-[#8A2036]">{pagination.total || 0}</span>
+          {searchTerm && (
+            <span className="ml-2 text-xs text-gray-500">(filtrando: "{searchTerm}")</span>
+          )}
+        </p>
         {pagination.lastPage > 1 && (
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <button
+              type="button"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="rounded-xl border border-[#e8d3d4] bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 transition hover:border-[#8A2036]/30 hover:text-[#8A2036] disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
             >
               Anterior
             </button>
-            
-            {/* Generate page numbers to display */}
             {(() => {
               const pages = [];
-              const pagesToShow = window.innerWidth < 640 ? 5 : 10; // Menos páginas en móvil
+              const pagesToShow = window.innerWidth < 640 ? 5 : 10;
               let startPage = Math.max(1, currentPage - Math.floor(pagesToShow / 2));
               let endPage = Math.min(pagination.lastPage, startPage + pagesToShow - 1);
-
-              // Adjust startPage and endPage if they hit the boundaries
               if (endPage - startPage + 1 < pagesToShow) {
                 startPage = Math.max(1, endPage - pagesToShow + 1);
               }
-
               if (startPage > 1) {
                 pages.push(1);
                 if (startPage > 2) {
                   pages.push('...');
                 }
               }
-
               for (let i = startPage; i <= endPage; i++) {
                 pages.push(i);
               }
-
               if (endPage < pagination.lastPage) {
                 if (endPage < pagination.lastPage - 1) {
                   pages.push('...');
                 }
                 pages.push(pagination.lastPage);
               }
-
               return pages.map((page, index) => (
                 <button
                   key={index}
+                  type="button"
                   onClick={() => typeof page === 'number' && handlePageChange(page)}
                   disabled={typeof page !== 'number' || currentPage === page}
-                  className={`px-2 sm:px-3 py-1 rounded-md text-sm ${typeof page === 'number' ?
-                    (currentPage === page
-                      ? 'bg-colorPrimario text-white'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50')
-                    : 'bg-white border border-gray-300 text-gray-700 opacity-50 cursor-default' // Style for ellipsis
+                  className={`rounded-xl px-2.5 py-1.5 text-sm font-semibold transition sm:px-3 ${
+                    typeof page === 'number'
+                      ? currentPage === page
+                        ? 'bg-[#8A2036] text-white shadow-md shadow-[#8A2036]/20'
+                        : 'border border-[#e8d3d4] bg-white text-gray-700 hover:border-[#8A2036]/30 hover:text-[#8A2036]'
+                      : 'cursor-default border border-transparent bg-transparent text-gray-400'
                   }`}
                 >
                   {page}
                 </button>
               ));
             })()}
-            
             <button
+              type="button"
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === pagination.lastPage}
-              className="px-2 sm:px-3 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="rounded-xl border border-[#e8d3d4] bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 transition hover:border-[#8A2036]/30 hover:text-[#8A2036] disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
             >
               Siguiente
             </button>
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 
-export default UsuarioList; 
+export default UsuarioList;
