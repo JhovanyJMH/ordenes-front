@@ -8,6 +8,7 @@ import CustomSelect from '../common/CustomSelect';
 import Swal from 'sweetalert2';
 import solicitudesService from '../../services/solicitudesService';
 import { downloadSolicitudPdf } from '../../utils/solicitudPdfGenerator';
+import { FiEdit2, FiArrowRight, FiDownload, FiEdit } from 'react-icons/fi';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -184,10 +185,33 @@ const SolicitudList = () => {
                 </td>
                 <td className="px-3 py-3 text-center sm:px-4">
                   <div className="flex flex-wrap justify-center gap-1.5">
-                    <Link to={`editar/${sol.id}`} title="Atender" className="rounded-xl border border-[#8A2036] bg-[#8A2036] px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#6d1a2a] focus:outline-none focus:ring-2 focus:ring-[#8A2036]/20 sm:text-xs">Atender</Link>
-                    <button onClick={() => openTurnarPanel(sol.id)} title="Turnar" className="rounded-xl border border-[#BC955B] bg-[#BC955B] px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#a57d43] focus:outline-none focus:ring-2 focus:ring-[#BC955B]/20 sm:text-xs">Turnar</button>
-                    {/* <button onClick={() => handleClose(sol.id)} title="Cerrar" className="rounded-xl border border-[#d8a35b] bg-[#f8eedf] px-2.5 py-1.5 text-[11px] font-semibold text-[#8e5d27] transition hover:bg-[#d8a35b] hover:text-white">Cerrar</button> */}
-                    <button onClick={() => handleDownloadPdf(sol.id)} title="Descargar PDF" className="rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] px-2.5 py-1.5 text-[11px] font-bold text-[#8A2036] transition-all duration-200 hover:bg-[#8A2036] hover:text-white hover:shadow-md hover:shadow-[#8A2036]/20 focus:outline-none focus:ring-2 focus:ring-[#8A2036]/20 sm:text-xs">PDF</button>
+                    <Link to={`editar/${sol.id}`} 
+                      className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-blue-600/30 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white"
+                      title="Editar ficha"
+                    >
+                      <FiEdit size={16} />
+                      <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                        Editar
+                      </span>
+                    </Link>
+                    <button onClick={() => openTurnarPanel(sol.id)} 
+                      className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#0F766E]/30 bg-[#0F766E]/10 text-[#0F766E] hover:bg-[#0F766E] hover:text-white transition"
+                      title="Turnar"
+                    >
+                      <FiArrowRight size={16} />
+                      <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                        Turnar
+                      </span>
+                    </button>
+                    <button onClick={() => handleDownloadPdf(sol.id)} 
+                      className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#8A2036]/30 bg-[#8A2036]/10 text-[#8A2036] hover:bg-[#8A2036] hover:text-white transition-all duration-200 hover:shadow-md hover:shadow-[#8A2036]/20"
+                      title="Descargar PDF"
+                    >
+                      <FiDownload size={16} />
+                      <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
+                        Descargar PDF
+                      </span>
+                    </button>
                   </div>
                 </td>
               </tr>
