@@ -3,7 +3,7 @@ import refaccionesService from '../../services/refaccionesService';
 
 export const fetchRefacciones = createAsyncThunk(
   'refacciones/fetchRefacciones',
-  async ({ page = 1, per_page = 50, search = '' } = {}, { rejectWithValue }) => {
+  async ({ page = 1, search = '', per_page } = {}, { rejectWithValue }) => {
     try {
       return await refaccionesService.getRefacciones({ page, per_page, search });
     } catch (err) {
@@ -65,11 +65,14 @@ const refaccionesSlice = createSlice({
     error: null,
     successMessage: null,
     selected: null,
-    pagination: { currentPage: 1, lastPage: 1, perPage: 50, total: 0, from: 0, to: 0 },
+    highlightedRefaccion: null,
+    paginationInfo: null,
+    pagination: { currentPage: 1, lastPage: 1, perPage: 10, total: 0, from: 0, to: 0 },
   },
   reducers: {
     clearError: (s) => { s.error = null; },
     clearSuccessMessage: (s) => { s.successMessage = null; },
+    clearHighlightedRefaccion: (s) => { s.highlightedRefaccion = null; s.paginationInfo = null; },
   },
   extraReducers: (b) => {
     b.addCase(fetchRefacciones.pending, (s) => { s.loading = true; s.error = null; })
@@ -90,6 +93,10 @@ const refaccionesSlice = createSlice({
       .addCase(createRefaccion.fulfilled, (s, a) => {
         s.loading = false;
         s.successMessage = 'Refacción creada';
+        if (a.payload?.refaccion) {
+          s.highlightedRefaccion = a.payload.refaccion.id;
+          s.paginationInfo = a.payload.pagination_info;
+        }
         if (a.payload?.id) s.list.unshift(a.payload);
       })
       .addCase(createRefaccion.rejected, (s, a) => { s.loading = false; s.error = a.payload; })
@@ -97,6 +104,10 @@ const refaccionesSlice = createSlice({
       .addCase(updateRefaccion.fulfilled, (s, a) => {
         s.loading = false;
         s.successMessage = 'Refacción actualizada';
+        if (a.payload?.refaccion) {
+          s.highlightedRefaccion = a.payload.refaccion.id;
+          s.paginationInfo = a.payload.pagination_info;
+        }
         const i = s.list.findIndex((x) => String(x.id) === String(a.payload?.id));
         if (i !== -1) s.list[i] = a.payload;
       })
@@ -114,5 +125,5 @@ const refaccionesSlice = createSlice({
   },
 });
 
-export const { clearError, clearSuccessMessage } = refaccionesSlice.actions;
+export const { clearError, clearSuccessMessage, clearHighlightedRefaccion } = refaccionesSlice.actions;
 export default refaccionesSlice.reducer;

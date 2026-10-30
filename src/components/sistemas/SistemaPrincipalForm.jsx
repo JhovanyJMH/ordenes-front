@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { FiArrowLeft, FiCheckCircle, FiChevronRight, FiClipboard, FiLayers } from 'react-icons/fi';
-import sistemasPrincipalesService from '../../services/sistemasPrincipalesService';
+import { createSistemaPrincipal, updateSistemaPrincipal, getSistemaPrincipalById, clearError } from '../../features/sistemasPrincipales/sistemasPrincipalesSlice';
 import { ChoiceButton, FieldLabel, SectionCard, SummaryItem, inputClass } from './sistemaFormUtils';
 
 const STEPS = [
@@ -14,9 +15,10 @@ const SistemaPrincipalForm = ({ mode = 'create', editId = null }) => {
   const { id: routeId } = useParams();
   const id = editId || routeId;
   const isEdit = mode === 'edit' || Boolean(id);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { selected, loading } = useSelector((s) => s.sistemasPrincipales);
   const [form, setForm] = useState({ descripcion: '', estatus: '1' });
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const submittingRef = useRef(false);
@@ -24,13 +26,16 @@ const SistemaPrincipalForm = ({ mode = 'create', editId = null }) => {
   const step = STEPS[currentStep];
 
   useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    sistemasPrincipalesService.getSistemaPrincipalById(id)
-      .then((principal) => setForm({ descripcion: principal.descripcion, estatus: String(principal.estatus) }))
-      .catch((error) => Swal.fire({ icon: 'error', title: 'No se pudo cargar el sistema principal', text: error.response?.data?.message || 'Intenta nuevamente.' }))
-      .finally(() => setLoading(false));
-  }, [id]);
+    if (mode === 'edit' && editId) {
+      dispatch(getSistemaPrincipalById(editId));
+    }
+  }, [dispatch, mode, editId]);
+
+  useEffect(() => {
+    if (selected && mode === 'edit') {
+      setForm({ descripcion: selected.descripcion, estatus: String(selected.estatus) });
+    }
+  }, [selected, mode]);
 
   useEffect(() => {
     containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -50,17 +55,15 @@ const SistemaPrincipalForm = ({ mode = 'create', editId = null }) => {
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      if (id) await sistemasPrincipalesService.updateSistemaPrincipal(id, form);
-      else await sistemasPrincipalesService.createSistemaPrincipal(form);
-      await Swal.fire({
-        icon: 'success',
-        title: isEdit ? 'Sistema principal actualizado' : 'Sistema principal creado',
-        timer: 1400,
-        showConfirmButton: false,
-      });
+      if (id) {
+        await dispatch(updateSistemaPrincipal({ id, data: form })).unwrap();
+      } else {
+        await dispatch(createSistemaPrincipal(form)).unwrap();
+      }
       navigate('/catalogo-sistemas');
     } catch (error) {
-      Swal.fire({ icon: 'error', title: 'No se pudo guardar', text: error.response?.data?.message || 'Revisa los datos capturados.' });
+      Swal.fire({ icon: 'error', title: 'No se pudo guardar', text: error || 'Revisa los datos capturados.' });
+      dispatch(clearError());
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -70,7 +73,7 @@ const SistemaPrincipalForm = ({ mode = 'create', editId = null }) => {
   if (loading) {
     return (
       <div className="flex h-56 flex-col items-center justify-center gap-3">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-colorPrimario border-t-transparent" />
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#8A2036] border-t-transparent" />
         <p className="text-sm text-gray-500">Cargando sistema principal...</p>
       </div>
     );

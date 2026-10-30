@@ -91,7 +91,6 @@ const AdscripcionForm = () => {
         ubicacion_ln: Number(form.ubicacion_ln) || 0,
       };
       await dispatch(createAdscripcion(payload)).unwrap();
-      Swal.fire({ title: 'Éxito', text: 'Adscripción creada', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate('/catalogo-adscripciones');
     } catch (err) {
       Swal.fire('Error', err || 'No se pudo crear', 'error');

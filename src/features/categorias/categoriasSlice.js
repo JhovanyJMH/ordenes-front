@@ -3,7 +3,7 @@ import categoriasService from '../../services/categoriasService';
 
 export const fetchCategorias = createAsyncThunk(
   'categorias/fetchCategorias',
-  async ({ page = 1, per_page = 50, search = '' } = {}, { rejectWithValue }) => {
+  async ({ page = 1, search = '', per_page } = {}, { rejectWithValue }) => {
     try { return await categoriasService.getCategorias({ page, per_page, search }); }
     catch (err) { return rejectWithValue(err?.message || 'Error al obtener categorías'); }
   }
@@ -45,21 +45,24 @@ const categoriasSlice = createSlice({
   name: 'categorias',
   initialState: {
     list: [], loading: false, error: null, successMessage: null, selected: null,
-    pagination: { currentPage: 1, lastPage: 1, perPage: 50, total: 0, from: 0, to: 0 },
+    highlightedCategoria: null,
+    paginationInfo: null,
+    pagination: { currentPage: 1, lastPage: 1, perPage: 10, total: 0, from: 0, to: 0 },
   },
   reducers: {
     clearError: (s) => { s.error = null; },
     clearSuccessMessage: (s) => { s.successMessage = null; },
+    clearHighlightedCategoria: (s) => { s.highlightedCategoria = null; s.paginationInfo = null; },
   },
   extraReducers: (b) => {
     b.addCase(fetchCategorias.pending, (s)=>{s.loading=true;s.error=null;})
      .addCase(fetchCategorias.fulfilled, (s,a)=>{s.loading=false;s.list=a.payload.data||[];s.pagination={currentPage:a.payload.current_page,lastPage:a.payload.last_page,perPage:a.payload.per_page,total:a.payload.total,from:a.payload.from,to:a.payload.to};})
      .addCase(fetchCategorias.rejected, (s,a)=>{s.loading=false;s.error=a.payload;})
      .addCase(createCategoria.pending, (s)=>{s.loading=true;s.error=null;})
-     .addCase(createCategoria.fulfilled, (s,a)=>{s.loading=false;s.successMessage='Categoría creada'; if(a.payload?.id){s.list.unshift(a.payload);} })
+     .addCase(createCategoria.fulfilled, (s,a)=>{s.loading=false;s.successMessage='Categoría creada'; if(a.payload?.categoria){s.highlightedCategoria=a.payload.categoria.id;s.paginationInfo=a.payload.pagination_info;} if(a.payload?.id){s.list.unshift(a.payload);} })
      .addCase(createCategoria.rejected, (s,a)=>{s.loading=false;s.error=a.payload;})
      .addCase(updateCategoria.pending, (s)=>{s.loading=true;s.error=null;})
-     .addCase(updateCategoria.fulfilled, (s,a)=>{s.loading=false;s.successMessage='Categoría actualizada'; const i=s.list.findIndex(x=>String(x.id)===String(a.payload?.id)); if(i!==-1) s.list[i]=a.payload;})
+     .addCase(updateCategoria.fulfilled, (s,a)=>{s.loading=false;s.successMessage='Categoría actualizada'; if(a.payload?.categoria){s.highlightedCategoria=a.payload.categoria.id;s.paginationInfo=a.payload.pagination_info;} const i=s.list.findIndex(x=>String(x.id)===String(a.payload?.id)); if(i!==-1) s.list[i]=a.payload;})
      .addCase(updateCategoria.rejected, (s,a)=>{s.loading=false;s.error=a.payload;})
      .addCase(getCategoriaById.pending, (s)=>{s.loading=true;s.error=null;s.selected=null;})
      .addCase(getCategoriaById.fulfilled, (s,a)=>{s.loading=false;s.selected=a.payload;})
@@ -70,5 +73,5 @@ const categoriasSlice = createSlice({
   }
 });
 
-export const { clearError, clearSuccessMessage } = categoriasSlice.actions;
+export const { clearError, clearSuccessMessage, clearHighlightedCategoria } = categoriasSlice.actions;
 export default categoriasSlice.reducer;

@@ -3,7 +3,7 @@ import serviciosService from '../../services/serviciosService';
 
 export const fetchServicios = createAsyncThunk(
   'servicios/fetchServicios',
-  async ({ page = 1, per_page = 50, search = '', categoria_id = null } = {}, { rejectWithValue }) => {
+  async ({ page = 1, search = '', categoria_id = null, per_page } = {}, { rejectWithValue }) => {
     try { return await serviciosService.getServicios({ page, per_page, search, categoria_id }); }
     catch (err) { return rejectWithValue(err?.message || 'Error al obtener servicios'); }
   }
@@ -45,21 +45,24 @@ const serviciosSlice = createSlice({
   name: 'servicios',
   initialState: {
     list: [], loading: false, error: null, successMessage: null, selected: null,
-    pagination: { currentPage: 1, lastPage: 1, perPage: 50, total: 0, from: 0, to: 0 },
+    highlightedServicio: null,
+    paginationInfo: null,
+    pagination: { currentPage: 1, lastPage: 1, perPage: 3, total: 0, from: 0, to: 0 },
   },
   reducers: {
     clearError: (s) => { s.error = null; },
     clearSuccessMessage: (s) => { s.successMessage = null; },
+    clearHighlightedServicio: (s) => { s.highlightedServicio = null; s.paginationInfo = null; },
   },
   extraReducers: (b) => {
     b.addCase(fetchServicios.pending, (s)=>{s.loading=true;s.error=null;})
      .addCase(fetchServicios.fulfilled, (s,a)=>{s.loading=false;s.list=a.payload.data||[];s.pagination={currentPage:a.payload.current_page,lastPage:a.payload.last_page,perPage:a.payload.per_page,total:a.payload.total,from:a.payload.from,to:a.payload.to};})
      .addCase(fetchServicios.rejected, (s,a)=>{s.loading=false;s.error=a.payload;})
      .addCase(createServicio.pending, (s)=>{s.loading=true;s.error=null;})
-     .addCase(createServicio.fulfilled, (s,a)=>{s.loading=false;s.successMessage='Servicio creado'; if(a.payload?.id){s.list.unshift(a.payload);} })
+     .addCase(createServicio.fulfilled, (s,a)=>{s.loading=false;s.successMessage='Servicio creado'; if(a.payload?.servicio){s.highlightedServicio=a.payload.servicio.id;s.paginationInfo=a.payload.pagination_info;} if(a.payload?.id){s.list.unshift(a.payload);} })
      .addCase(createServicio.rejected, (s,a)=>{s.loading=false;s.error=a.payload;})
      .addCase(updateServicio.pending, (s)=>{s.loading=true;s.error=null;})
-     .addCase(updateServicio.fulfilled, (s,a)=>{s.loading=false;s.successMessage='Servicio actualizado'; const i=s.list.findIndex(x=>String(x.id)===String(a.payload?.id)); if(i!==-1) s.list[i]=a.payload;})
+     .addCase(updateServicio.fulfilled, (s,a)=>{s.loading=false;s.successMessage='Servicio actualizado'; if(a.payload?.servicio){s.highlightedServicio=a.payload.servicio.id;s.paginationInfo=a.payload.pagination_info;} const i=s.list.findIndex(x=>String(x.id)===String(a.payload?.id)); if(i!==-1) s.list[i]=a.payload;})
      .addCase(updateServicio.rejected, (s,a)=>{s.loading=false;s.error=a.payload;})
      .addCase(getServicioById.pending, (s)=>{s.loading=true;s.error=null;s.selected=null;})
      .addCase(getServicioById.fulfilled, (s,a)=>{s.loading=false;s.selected=a.payload;})
@@ -70,5 +73,5 @@ const serviciosSlice = createSlice({
   }
 });
 
-export const { clearError, clearSuccessMessage } = serviciosSlice.actions;
+export const { clearError, clearSuccessMessage, clearHighlightedServicio } = serviciosSlice.actions;
 export default serviciosSlice.reducer;

@@ -3,10 +3,10 @@ import api from './api';
 const ROUTE = '/users';
 
 const usersService = {
-  getUsers: async ({ page = 1, per_page = 50, search = '' } = {}) => {
-    const response = await api.get(ROUTE, {
-      params: { page, per_page, search },
-    });
+  getUsers: async ({ page = 1, per_page, search = '' } = {}) => {
+    const params = { page, search };
+    if (per_page != null) params.per_page = per_page;
+    const response = await api.get(ROUTE, { params });
     return response.data;
   },
 

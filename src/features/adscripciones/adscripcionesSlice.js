@@ -3,12 +3,9 @@ import adscripcionesService from '../../services/adscripcionesService';
 
 export const fetchAdscripciones = createAsyncThunk(
   'adscripciones/fetchAdscripciones',
-  async ({ page = 1, per_page = 50, search = '' } = {}, { rejectWithValue }) => {
-    try {
-      return await adscripcionesService.getAdscripciones({ page, per_page, search });
-    } catch (err) {
-      return rejectWithValue(err?.message || 'Error al obtener adscripciones');
-    }
+  async ({ page = 1, search = '', per_page } = {}, { rejectWithValue }) => {
+    try { return await adscripcionesService.getAdscripciones({ page, per_page, search }); }
+    catch (err) { return rejectWithValue(err?.message || 'Error al obtener adscripciones'); }
   }
 );
 
@@ -65,11 +62,14 @@ const adscripcionesSlice = createSlice({
     error: null,
     successMessage: null,
     selected: null,
-    pagination: { currentPage: 1, lastPage: 1, perPage: 50, total: 0, from: 0, to: 0 },
+    highlightedAdscripcion: null,
+    paginationInfo: null,
+    pagination: { currentPage: 1, lastPage: 1, perPage: 10, total: 0, from: 0, to: 0 },
   },
   reducers: {
     clearError: (s) => { s.error = null; },
     clearSuccessMessage: (s) => { s.successMessage = null; },
+    clearHighlightedAdscripcion: (s) => { s.highlightedAdscripcion = null; s.paginationInfo = null; },
   },
   extraReducers: (b) => {
     b.addCase(fetchAdscripciones.pending, (s) => { s.loading = true; s.error = null; })
@@ -90,6 +90,10 @@ const adscripcionesSlice = createSlice({
       .addCase(createAdscripcion.fulfilled, (s, a) => {
         s.loading = false;
         s.successMessage = 'Adscripción creada';
+        if (a.payload?.adscripcion) {
+          s.highlightedAdscripcion = a.payload.adscripcion.id;
+          s.paginationInfo = a.payload.pagination_info;
+        }
         if (a.payload?.id) s.list.unshift(a.payload);
       })
       .addCase(createAdscripcion.rejected, (s, a) => { s.loading = false; s.error = a.payload; })
@@ -97,6 +101,10 @@ const adscripcionesSlice = createSlice({
       .addCase(updateAdscripcion.fulfilled, (s, a) => {
         s.loading = false;
         s.successMessage = 'Adscripción actualizada';
+        if (a.payload?.adscripcion) {
+          s.highlightedAdscripcion = a.payload.adscripcion.id;
+          s.paginationInfo = a.payload.pagination_info;
+        }
         const i = s.list.findIndex((x) => String(x.id) === String(a.payload?.id));
         if (i !== -1) s.list[i] = a.payload;
       })
@@ -114,5 +122,5 @@ const adscripcionesSlice = createSlice({
   },
 });
 
-export const { clearError, clearSuccessMessage } = adscripcionesSlice.actions;
+export const { clearError, clearSuccessMessage, clearHighlightedAdscripcion } = adscripcionesSlice.actions;
 export default adscripcionesSlice.reducer;

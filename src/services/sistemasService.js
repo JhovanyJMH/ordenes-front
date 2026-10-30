@@ -3,10 +3,10 @@ import api from './api';
 const ROUTE = '/sistemas';
 
 const sistemasService = {
-  getSistemas: async ({ page = 1, per_page = 50, search = '', sistema_principal_id } = {}) => {
-    const response = await api.get(ROUTE, {
-      params: { page, per_page, search, sistema_principal_id },
-    });
+  getSistemas: async ({ page = 1, per_page, search = '', sistema_principal_id } = {}) => {
+    const params = { page, search, sistema_principal_id };
+    if (per_page != null) params.per_page = per_page;
+    const response = await api.get(ROUTE, { params });
     return response.data;
   },
   filtrado: async (search) => {

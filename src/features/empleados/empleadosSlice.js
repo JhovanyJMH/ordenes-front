@@ -3,7 +3,7 @@ import empleadosService from '../../services/empleadosService';
 
 export const fetchEmpleados = createAsyncThunk(
   'empleados/fetchEmpleados',
-  async ({ page = 1, per_page = 50, search = '' } = {}, { rejectWithValue }) => {
+  async ({ page = 1, search = '', per_page } = {}, { rejectWithValue }) => {
     try {
       const resp = await empleadosService.getEmpleados({ page, per_page, search });
       return resp;
@@ -69,10 +69,12 @@ const empleadosSlice = createSlice({
     error: null,
     successMessage: null,
     selected: null,
+    highlightedEmpleado: null,
+    paginationInfo: null,
     pagination: {
       currentPage: 1,
       lastPage: 1,
-      perPage: 50,
+      perPage: 10,
       total: 0,
       from: 0,
       to: 0,
@@ -81,6 +83,7 @@ const empleadosSlice = createSlice({
   reducers: {
     clearError: (state) => { state.error = null; },
     clearSuccessMessage: (state) => { state.successMessage = null; },
+    clearHighlightedEmpleado: (state) => { state.highlightedEmpleado = null; state.paginationInfo = null; },
   },
   extraReducers: (builder) => {
     builder
@@ -111,7 +114,10 @@ const empleadosSlice = createSlice({
       .addCase(createEmpleado.fulfilled, (state, action) => {
         state.loading = false;
         state.successMessage = 'Empleado creado exitosamente';
-        // Optionally push to list if backend returns object
+        if (action.payload?.empleado) {
+          state.highlightedEmpleado = action.payload.empleado.id;
+          state.paginationInfo = action.payload.pagination_info;
+        }
         if (action.payload?.id) {
           state.list.unshift(action.payload);
         }
@@ -127,6 +133,10 @@ const empleadosSlice = createSlice({
       .addCase(updateEmpleado.fulfilled, (state, action) => {
         state.loading = false;
         state.successMessage = 'Empleado actualizado exitosamente';
+        if (action.payload?.empleado) {
+          state.highlightedEmpleado = action.payload.empleado.id;
+          state.paginationInfo = action.payload.pagination_info;
+        }
         const idx = state.list.findIndex((e) => String(e.id) === String(action.payload?.id));
         if (idx !== -1) state.list[idx] = action.payload;
       })
@@ -163,5 +173,5 @@ const empleadosSlice = createSlice({
   },
 });
 
-export const { clearError, clearSuccessMessage } = empleadosSlice.actions;
+export const { clearError, clearSuccessMessage, clearHighlightedEmpleado } = empleadosSlice.actions;
 export default empleadosSlice.reducer;

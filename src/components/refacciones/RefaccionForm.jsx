@@ -92,7 +92,6 @@ const RefaccionForm = () => {
     e.preventDefault();
     try {
       await dispatch(createRefaccion(form)).unwrap();
-      Swal.fire({ title: 'Éxito', text: 'Refacción creada', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate('/catalogo-refacciones');
     } catch (err) {
       Swal.fire('Error', err || 'No se pudo crear', 'error');

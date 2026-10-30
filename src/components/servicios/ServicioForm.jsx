@@ -80,7 +80,6 @@ const ServicioForm = () => {
     try {
       const payload = { ...form, estatus: form.estatus === '1' ? 1 : 0, categoria_id: Number(categoriaId) };
       await dispatch(createServicio(payload)).unwrap();
-      Swal.fire({ title: 'Éxito', text: 'Servicio creado', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate(`/catalogo-categorias/${categoriaId}/servicios`);
     } catch (err) {
       Swal.fire('Error', err || 'No se pudo crear', 'error');

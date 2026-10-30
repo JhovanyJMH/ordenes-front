@@ -108,7 +108,6 @@ const AdscripcionEdit = () => {
         ubicacion_ln: Number(form.ubicacion_ln) || 0,
       };
       await dispatch(updateAdscripcion({ id, data: payload })).unwrap();
-      Swal.fire({ title: 'Éxito', text: 'Adscripción actualizada', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate('/catalogo-adscripciones');
     } catch (err) {
       Swal.fire('Error', err || 'No se pudo actualizar', 'error');

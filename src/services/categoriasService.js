@@ -3,8 +3,10 @@ import api from './api';
 const ROUTE = '/categorias';
 
 const categoriasService = {
-  getCategorias: async ({ page = 1, per_page = 50, search = '' } = {}) => {
-    const response = await api.get(ROUTE, { params: { page, per_page, search } });
+  getCategorias: async ({ page = 1, per_page, search = '' } = {}) => {
+    const params = { page, search };
+    if (per_page != null) params.per_page = per_page;
+    const response = await api.get(ROUTE, { params });
     return response.data;
   },
   getCategoriaById: async (id) => {
@@ -23,8 +25,10 @@ const categoriasService = {
     const response = await api.delete(`${ROUTE}/${id}`);
     return response.data;
   },
-  getServiciosByCategoria: async (categoriaId, { page = 1, per_page = 50, search = '' } = {}) => {
-    const response = await api.get(`${ROUTE}/${categoriaId}/servicios`, { params: { page, per_page, search } });
+  getServiciosByCategoria: async (categoriaId, { page = 1, per_page, search = '' } = {}) => {
+    const params = { page, search };
+    if (per_page != null) params.per_page = per_page;
+    const response = await api.get(`${ROUTE}/${categoriaId}/servicios`, { params });
     return response.data;
   }
 };

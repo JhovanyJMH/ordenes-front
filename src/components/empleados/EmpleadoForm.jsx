@@ -90,7 +90,6 @@ const EmpleadoForm = () => {
         estatus: form.estatus === '1' ? 1 : 0,
       };
       await dispatch(createEmpleado(payload)).unwrap();
-      Swal.fire({ title: 'Éxito', text: 'Empleado creado', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate('/catalogo-empleados');
     } catch (err) {
       Swal.fire('Error', err || 'No se pudo crear', 'error');

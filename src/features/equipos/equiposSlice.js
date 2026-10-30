@@ -3,7 +3,7 @@ import equiposService from '../../services/equiposService';
 
 export const fetchEquipos = createAsyncThunk(
   'equipos/fetchEquipos',
-  async ({ page = 1, per_page = 50, search = '' } = {}, { rejectWithValue }) => {
+  async ({ page = 1, search = '', per_page } = {}, { rejectWithValue }) => {
     try {
       return await equiposService.getEquipos({ page, per_page, search });
     } catch (err) {
@@ -65,11 +65,14 @@ const equiposSlice = createSlice({
     error: null,
     successMessage: null,
     selected: null,
-    pagination: { currentPage: 1, lastPage: 1, perPage: 50, total: 0, from: 0, to: 0 },
+    highlightedEquipo: null,
+    paginationInfo: null,
+    pagination: { currentPage: 1, lastPage: 1, perPage: 10, total: 0, from: 0, to: 0 },
   },
   reducers: {
     clearError: (s) => { s.error = null; },
     clearSuccessMessage: (s) => { s.successMessage = null; },
+    clearHighlightedEquipo: (s) => { s.highlightedEquipo = null; s.paginationInfo = null; },
   },
   extraReducers: (b) => {
     b.addCase(fetchEquipos.pending, (s) => { s.loading = true; s.error = null; })
@@ -90,6 +93,10 @@ const equiposSlice = createSlice({
       .addCase(createEquipo.fulfilled, (s, a) => {
         s.loading = false;
         s.successMessage = 'Equipo creado';
+        if (a.payload?.equipo) {
+          s.highlightedEquipo = a.payload.equipo.id;
+          s.paginationInfo = a.payload.pagination_info;
+        }
         if (a.payload?.id) s.list.unshift(a.payload);
       })
       .addCase(createEquipo.rejected, (s, a) => { s.loading = false; s.error = a.payload; })
@@ -97,6 +104,10 @@ const equiposSlice = createSlice({
       .addCase(updateEquipo.fulfilled, (s, a) => {
         s.loading = false;
         s.successMessage = 'Equipo actualizado';
+        if (a.payload?.equipo) {
+          s.highlightedEquipo = a.payload.equipo.id;
+          s.paginationInfo = a.payload.pagination_info;
+        }
         const i = s.list.findIndex((x) => String(x.id) === String(a.payload?.id));
         if (i !== -1) s.list[i] = a.payload;
       })
@@ -114,5 +125,5 @@ const equiposSlice = createSlice({
   },
 });
 
-export const { clearError, clearSuccessMessage } = equiposSlice.actions;
+export const { clearError, clearSuccessMessage, clearHighlightedEquipo } = equiposSlice.actions;
 export default equiposSlice.reducer;

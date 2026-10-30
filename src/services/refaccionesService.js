@@ -3,8 +3,10 @@ import api from './api';
 const ROUTE = '/refacciones';
 
 const refaccionesService = {
-  getRefacciones: async ({ page = 1, per_page = 50, search = '' } = {}) => {
-    const response = await api.get(ROUTE, { params: { page, per_page, search } });
+  getRefacciones: async ({ page = 1, per_page, search = '' } = {}) => {
+    const params = { page, search };
+    if (per_page != null) params.per_page = per_page;
+    const response = await api.get(ROUTE, { params });
     return response.data;
   },
   getRefaccionById: async (id) => {

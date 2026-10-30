@@ -115,11 +115,9 @@ const EquipoEdit = () => {
         ubicacion_ln: Number(form.ubicacion_ln) || 0,
       };
       await dispatch(updateEquipo({ id, data: payload })).unwrap();
-      Swal.fire({ title: 'Éxito', text: 'Equipo actualizado', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate('/catalogo-equipos');
     } catch (err) {
       Swal.fire('Error', err || 'No se pudo actualizar', 'error');
-      dispatch(clearError());
     }
   };
 

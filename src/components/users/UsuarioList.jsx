@@ -239,14 +239,14 @@ const UsuarioList = () => {
                             <path d="M13.5 6.5l4 4"></path>
                           </svg>
                         </Link>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(user.id)}
-                          title="Eliminar"
-                          className="inline-flex items-center justify-center rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] p-2 text-[#8A2036] transition-all duration-200 hover:bg-[#8A2036] hover:text-white hover:shadow-md hover:shadow-[#8A2036]/20"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
+                          {/* <button
+                            type="button"
+                            onClick={() => handleDelete(user.id)}
+                            title="Eliminar"
+                            className="inline-flex items-center justify-center rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] p-2 text-[#8A2036] transition-all duration-200 hover:bg-[#8A2036] hover:text-white hover:shadow-md hover:shadow-[#8A2036]/20"
+                          >
+                            <FiTrash2 size={16} />
+                          </button> */}
                       </div>
                     </td>
                     <td className={`max-w-[220px] px-3 py-3 sm:px-4 ${isHighlightedRow(user.id) ? 'text-white' : 'text-gray-700'}`}>

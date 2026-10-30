@@ -3,8 +3,9 @@ import api from './api';
 const ROUTE = '/servicios';
 
 const serviciosService = {
-  getServicios: async ({ page = 1, per_page = 50, search = '', categoria_id = null } = {}) => {
-    const params = { page, per_page, search };
+  getServicios: async ({ page = 1, per_page, search = '', categoria_id = null } = {}) => {
+    const params = { page, search };
+    if (per_page != null) params.per_page = per_page;
     if (categoria_id !== null && categoria_id !== undefined) params.categoria_id = categoria_id;
     const response = await api.get(ROUTE, { params });
     return response.data;

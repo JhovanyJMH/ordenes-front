@@ -87,7 +87,6 @@ const CategoriaEdit = () => {
     try {
       const payload = { ...form, estatus: form.estatus === '1' ? 1 : 0 };
       await dispatch(updateCategoria({ id, data: payload })).unwrap();
-      Swal.fire({ title: 'Éxito', text: 'Categoría actualizada', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate('/catalogo-categorias');
     } catch (err) {
       Swal.fire('Error', err || 'No se pudo actualizar', 'error');

@@ -105,7 +105,6 @@ const RefaccionEdit = () => {
     e.preventDefault();
     try {
       await dispatch(updateRefaccion({ id, data: form })).unwrap();
-      Swal.fire({ title: 'Éxito', text: 'Refacción actualizada', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate('/catalogo-refacciones');
     } catch (err) {
       Swal.fire('Error', err || 'No se pudo actualizar', 'error');

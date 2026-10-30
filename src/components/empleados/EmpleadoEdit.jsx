@@ -116,7 +116,6 @@ const EmpleadoEdit = () => {
         estatus: form.estatus === '1' ? 1 : 0,
       };
       await dispatch(updateEmpleado({ id, data: payload })).unwrap();
-      Swal.fire({ title: 'Éxito', text: 'Empleado actualizado', icon: 'success', timer: 1500, showConfirmButton: false });
       navigate('/catalogo-empleados');
     } catch (err) {
       Swal.fire('Error', err || 'No se pudo actualizar', 'error');

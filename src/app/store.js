@@ -9,6 +9,8 @@ import serviciosReducer from '../features/servicios/serviciosSlice';
 import equiposReducer from '../features/equipos/equiposSlice';
 import refaccionesReducer from '../features/refacciones/refaccionesSlice';
 import solicitudesReducer from '../features/solicitudes/solicitudesSlice';
+import sistemasPrincipalesReducer from '../features/sistemasPrincipales/sistemasPrincipalesSlice';
+import sistemasReducer from '../features/sistemas/sistemasSlice';
 
 
 export const store = configureStore({
@@ -23,5 +25,7 @@ export const store = configureStore({
     equipos: equiposReducer,
     refacciones: refaccionesReducer,
     solicitudes: solicitudesReducer,
+    sistemasPrincipales: sistemasPrincipalesReducer,
+    sistemas: sistemasReducer,
   },
 });
