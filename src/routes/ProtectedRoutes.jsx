@@ -35,7 +35,7 @@ const ProtectedRoutes = () => {
         <Route path="/catalogo-categorias/*" element={<CategoriasPage />} />
         <Route path="/catalogo-equipos/*" element={<EquiposPage />} />
         <Route path="/catalogo-refacciones/*" element={<RefaccionesPage />} />
-        <Route path="/catalogo-sistemas/*" element={<AdminRoute><SistemasPage /></AdminRoute>} />
+        <Route path="/catalogo-sistemas/*" element={<BdOfficeRoute><SistemasPage /></BdOfficeRoute>} />
         <Route path="/solicitudes/*" element={<SolicitudesPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>

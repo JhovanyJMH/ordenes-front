@@ -10,92 +10,30 @@ import FondoDos from "../images/fondo_dos.png";
 import FondoTres from "../images/fondo_tres.png";
 import Swal from "sweetalert2";
 
-const AnimatedShapes = () => {
+const ImageSlider = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const backgroundImages = [FondoUno, FondoDos, FondoTres];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % backgroundImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="w-full h-full relative overflow-hidden bg-transparent">
-      <style>
-        {`
-          @keyframes float-doc {
-            0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
-            20% { transform: translateY(-40px) rotate(10deg) scale(1.2); }
-            40% { transform: translateY(-20px) rotate(-8deg) scale(1.1); }
-            60% { transform: translateY(-50px) rotate(12deg) scale(1.25); }
-            80% { transform: translateY(-25px) rotate(-5deg) scale(1.15); }
-          }
-          @keyframes float-calendar {
-            0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
-            20% { transform: translateY(-35px) rotate(-12deg) scale(1.18); }
-            40% { transform: translateY(-45px) rotate(15deg) scale(1.25); }
-            60% { transform: translateY(-25px) rotate(-10deg) scale(1.12); }
-            80% { transform: translateY(-40px) rotate(8deg) scale(1.2); }
-          }
-          @keyframes float-clipboard {
-            0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-            20% { transform: translate(35px, -35px) scale(1.2) rotate(12deg); }
-            40% { transform: translate(20px, -50px) scale(1.25) rotate(-15deg); }
-            60% { transform: translate(-25px, -30px) scale(1.18) rotate(10deg); }
-            80% { transform: translate(-15px, -40px) scale(1.15) rotate(-8deg); }
-          }
-          @keyframes float-checklist {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-50px) rotate(20deg); }
-            50% { transform: translateY(-30px) rotate(-25deg); }
-            75% { transform: translateY(-45px) rotate(15deg); }
-          }
-          @keyframes float-order {
-            0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-            20% { transform: translate(30px, -40px) scale(1.22) rotate(18deg); }
-            40% { transform: translate(-20px, -55px) scale(1.28) rotate(-20deg); }
-            60% { transform: translate(-35px, -25px) scale(1.2) rotate(15deg); }
-            80% { transform: translate(-30px, -45px) scale(1.18) rotate(-12deg); }
-          }
-          .animate-float-doc { animation: float-doc 8s ease-in-out infinite; }
-          .animate-float-calendar { animation: float-calendar 12s ease-in-out infinite; }
-          .animate-float-clipboard { animation: float-clipboard 10s ease-in-out infinite; }
-          .animate-float-checklist { animation: float-checklist 7s ease-in-out infinite; }
-          .animate-float-order { animation: float-order 11s ease-in-out infinite; }
-        `}
-      </style>
-
-      <div className="absolute inset-0">
-        {/* Document icon */}
-        <svg className="animate-float-doc absolute top-16 left-16 w-28 h-28 opacity-15" viewBox="0 0 24 24" fill="none" stroke="#8A2036" strokeWidth="1.5">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="16" y1="13" x2="8" y2="13" />
-          <line x1="16" y1="17" x2="8" y2="17" />
-          <line x1="10" y1="9" x2="8" y2="9" />
-        </svg>
-
-        {/* Calendar icon */}
-        <svg className="animate-float-calendar absolute top-1/4 right-20 w-36 h-36 opacity-10" viewBox="0 0 24 24" fill="none" stroke="#BC955B" strokeWidth="1.5">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-          <rect x="8" y="14" width="2" height="2" />
-          <rect x="14" y="14" width="2" height="2" />
-          <rect x="8" y="18" width="2" height="2" />
-          <rect x="14" y="18" width="2" height="2" />
-        </svg>
-
-        {/* Clipboard icon */}
-        <svg className="animate-float-clipboard absolute bottom-24 right-24 w-32 h-32 opacity-12" viewBox="0 0 24 24" fill="none" stroke="#DAC19A" strokeWidth="1.5">
-          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-          <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-          <path d="M9 14h6" />
-          <path d="M9 10h6" />
-          <path d="M9 18h6" />
-        </svg>
-
-
-        {/* Order icon */}
-        <svg className="animate-float-order absolute bottom-16 right-1/4 w-26 h-26 opacity-15" viewBox="0 0 24 24" fill="none" stroke="#8A2036" strokeWidth="1.5">
-          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-          <rect x="9" y="3" width="6" height="4" rx="1" />
-          <path d="M9 14l2 2 4-4" />
-        </svg>
-      </div>
+    <div className="w-full h-full relative overflow-hidden">
+      {backgroundImages.map((img, index) => (
+        <img
+          key={index}
+          src={img}
+          alt={`Fondo ${index + 1}`}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+            index === currentIndex ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      ))}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#8A2036]/20 to-[#BC955B]/20" />
     </div>
   );
 };
@@ -154,13 +92,13 @@ const LoginPage = () => {
   return (
     <main className="min-h-screen flex items-center justify-center p-4" style={{ backgroundImage: `url(${backgroundImages[currentBgIndex]})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', transition: 'background-image 1s ease-in-out' }}>
       <div className="grid grid-cols-1 lg:grid-cols-2 w-full max-w-7xl min-h-[600px] backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-white/30">
-        {/* Left Panel - Decorative */}
+        {/* Left Panel - Image Slider */}
         <div className="hidden lg:block relative overflow-hidden">
-          <AnimatedShapes />
+          <ImageSlider />
           <div className="absolute inset-0 flex flex-col justify-between p-12 z-10">
             <div>
-              <h1 className="text-4xl font-bold text-colorPrimario mb-4">Sistema de Órdenes de Servicio</h1>
-              <p className="text-gray-600 text-lg">Versión 2.0</p>
+              <h1 className="text-4xl font-bold text-white mb-4 drop-shadow-lg">Sistema de Órdenes de Servicio</h1>
+              <p className="text-white/90 text-lg drop-shadow">Versión 2.0</p>
             </div>
             
           </div>

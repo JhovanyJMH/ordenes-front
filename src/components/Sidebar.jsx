@@ -190,7 +190,7 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               )}
             </SidebarLinkGroup>
 
-            {isAdmin && (
+            {(isAdmin || canSeeDocumentos) && (
               <SidebarLinkGroup activecondition={pathname.includes('catalogo') || pathname.includes('refacciones')}>
                 {(handleClick, open) => (
                   <React.Fragment>
@@ -215,13 +215,15 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
                     </button>
                     <ul className={`ml-[2.65rem] mt-1 space-y-1 border-l border-white/15 pl-3 ${!open || !sidebarExpanded ? 'hidden' : ''}`}>
                       {[
-                        ['/catalogo-usuarios', 'Usuarios'],
-                        ['/catalogo-adscripciones', 'Adscripciones'],
-                        ['/catalogo-empleados', 'Empleados'],
-                        ['/catalogo-categorias', 'Categorías'],
-                        ['/catalogo-equipos', 'Equipos'],
-                        ['/catalogo-refacciones', 'Refacciones'],
-                        ['/catalogo-sistemas', 'Sistemas'],
+                        ...(isAdmin ? [
+                          ['/catalogo-usuarios', 'Usuarios'],
+                          ['/catalogo-adscripciones', 'Adscripciones'],
+                          ['/catalogo-empleados', 'Empleados'],
+                          ['/catalogo-categorias', 'Categorías'],
+                          ['/catalogo-equipos', 'Equipos'],
+                          ['/catalogo-refacciones', 'Refacciones'],
+                        ] : []),
+                        ...(canSeeDocumentos ? [['/catalogo-sistemas', 'Sistemas']] : []),
                       ].map(([to, label]) => (
                         <li key={to}>
                           <NavLink
