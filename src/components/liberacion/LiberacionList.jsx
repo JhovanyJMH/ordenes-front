@@ -17,7 +17,8 @@ const fmtDate = (value) => {
   return `${day}/${month}/${year}`;
 };
 
-const LiberacionList = () => {
+const LiberacionList = ({ mode = 'mine' }) => {
+  const isGeneral = mode === 'general';
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -33,7 +34,10 @@ const LiberacionList = () => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await liberacionService.getLiberaciones({ page: currentPage, search });
+      const getLiberaciones = isGeneral
+        ? liberacionService.getLiberacionesGenerales
+        : liberacionService.getLiberaciones;
+      const data = await getLiberaciones({ page: currentPage, search });
       setItems(Array.isArray(data) ? data : data?.data || []);
       setPagination({
         currentPage: data?.current_page || 1,
@@ -52,7 +56,7 @@ const LiberacionList = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, search]);
+  }, [currentPage, isGeneral, search]);
 
   useEffect(() => {
     loadData();
@@ -92,8 +96,14 @@ const LiberacionList = () => {
     <div className="mt-8 rounded-2xl border border-[#f3dfe3] bg-white p-5 shadow-[0_18px_45px_rgba(138,32,54,0.08)] ring-1 ring-[#f7e9ea]">
       <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Administración de fichas de liberación</h2>
-          <p className="mt-1 text-sm text-gray-600">Listado de liberaciones creadas, cerradas y exportables.</p>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {isGeneral ? 'Fichas de liberación del área' : 'Fichas de liberación'}
+          </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            {isGeneral
+              ? 'Registros creados por usuarios de tu área.'
+              : 'Listado de fichas de liberación que has creado.'}
+          </p>
           <p className="mt-2 text-xs font-medium text-[#8A2036]">
             {pagination.total} ficha{pagination.total === 1 ? '' : 's'}
           </p>
@@ -128,14 +138,16 @@ const LiberacionList = () => {
                 <th className="px-3 py-3">No control</th>
                 <th className="px-3 py-3">Tipo</th>
                 <th className="px-3 py-3">Fecha liberación</th>
+                {isGeneral && <th className="px-3 py-3">Creado por</th>}
+                {isGeneral && <th className="px-3 py-3">Área</th>}
                 <th className="px-3 py-3">Estatus</th>
-                <th className="px-3 py-3 text-center">Acción</th>
+                <th className="px-3 py-3 text-center">{isGeneral ? 'Descargas' : 'Acción'}</th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-3 py-12 text-center">
+                  <td colSpan={isGeneral ? 7 : 6} className="px-3 py-12 text-center">
                     <p className="font-semibold text-gray-700">
                       {search.trim() ? 'Sin coincidencias' : 'Sin fichas registradas'}
                     </p>
@@ -153,6 +165,19 @@ const LiberacionList = () => {
                     <td className="px-3 py-3">{item.numero_control || '—'}</td>
                     <td className="px-3 py-3">{item.tipo_liberacion || '—'}</td>
                     <td className="px-3 py-3 text-gray-600">{fmtDate(item.fecha_liberacion)}</td>
+                    {isGeneral && (
+                      <>
+                        <td className="px-3 py-3">
+                          {item.usuario_creador?.nombre_completo || item.usuario_creador?.name || '—'}
+                        </td>
+                        <td className="px-3 py-3 text-gray-600">
+                          {item.usuario_creador?.dependencia?.oficina
+                            || item.usuario_creador?.dependencia?.direccion
+                            || item.usuario_creador?.dependencia?.secretaria
+                            || '—'}
+                        </td>
+                      </>
+                    )}
                     <td className="px-3 py-3">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${Number(item.estatus) === 1 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200' : 'bg-stone-100 text-stone-700 ring-1 ring-inset ring-stone-200'}`}>
                         {Number(item.estatus) === 1 ? 'ABIERTA' : 'CERRADA'}
@@ -160,8 +185,9 @@ const LiberacionList = () => {
                     </td>
                     <td className="px-3 py-3 text-center">
                       <div className="flex flex-wrap justify-center gap-2">
-                        <Link
+                        {!isGeneral && <Link
                           to={`/fichas-liberacion/editar/${item.id}`}
+                          state={{ returnTo: isGeneral ? '/fichas-liberacion/general' : '/fichas-liberacion' }}
                           className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-blue-600/30 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white"
                           title="Editar ficha"
                         >
@@ -169,7 +195,7 @@ const LiberacionList = () => {
                           <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
                             Editar
                           </span>
-                        </Link>
+                        </Link>}
                         <button
                           type="button"
                           onClick={() => handleDownload(item)}

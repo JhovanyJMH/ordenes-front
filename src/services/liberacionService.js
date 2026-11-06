@@ -30,6 +30,10 @@ const liberacionService = {
     const response = await api.get(ROUTE, { params: { page, search } });
     return response.data;
   },
+  getLiberacionesGenerales: async ({ page = 1, search = '' } = {}) => {
+    const response = await api.get(`${ROUTE}/general`, { params: { page, search } });
+    return response.data;
+  },
   getLiberacionById: async (id) => {
     const response = await api.get(`${ROUTE}/${id}`);
     return response.data;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import jsPDF from 'jspdf';
 import {
@@ -236,6 +236,7 @@ const preparePdfDocument = async (file) => {
 
 const ControlCambioForm = ({ mode = 'create', editId = null }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -509,7 +510,7 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
         timer: 1400,
         showConfirmButton: false,
       });
-      navigate('/control-cambios');
+      navigate(location.state?.returnTo || '/control-cambios');
     }
   };
 
@@ -1148,7 +1149,7 @@ const ControlCambioForm = ({ mode = 'create', editId = null }) => {
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
-              onClick={() => (currentStep === 0 ? navigate('/control-cambios') : goToStep(currentStep - 1))}
+              onClick={() => (currentStep === 0 ? navigate(location.state?.returnTo || '/control-cambios') : goToStep(currentStep - 1))}
               disabled={submitting}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#BC955B]/60 px-5 py-2.5 text-sm font-semibold text-[#8A2036] transition hover:bg-[#DAC19A]/25 disabled:opacity-50 sm:w-auto"
             >

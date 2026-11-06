@@ -1,6 +1,7 @@
 import { Routes, Route, Link, useParams, useLocation } from 'react-router-dom';
 import LiberacionList from '../components/liberacion/LiberacionList';
 import LiberacionForm from '../components/liberacion/LiberacionForm';
+import AdminRoute from '../components/AdminRoute';
 import { FiChevronRight, FiFileText, FiPlus } from 'react-icons/fi';
 
 const LiberacionFormRoute = () => {
@@ -12,7 +13,7 @@ const LiberacionPage = () => {
   const location = useLocation();
 
   // Detectar página actual
-  const isListPage = location.pathname === "/fichas-liberacion" || location.pathname === "/fichas-liberacion/";
+  const isGeneralPage = location.pathname === "/fichas-liberacion/general";
   const isRegisterPage = location.pathname === "/fichas-liberacion/registrar";
   const isEditPage = location.pathname.startsWith("/fichas-liberacion/editar");
 
@@ -22,7 +23,9 @@ const LiberacionPage = () => {
       { label: 'Fichas de liberación', path: '/fichas-liberacion', icon: <FiFileText size={16} /> },
     ];
 
-    if (isRegisterPage) {
+    if (isGeneralPage) {
+      items.push({ label: 'Del área', path: '/fichas-liberacion/general', icon: <FiFileText size={16} /> });
+    } else if (isRegisterPage) {
       items.push({ label: 'Registrar', path: '/fichas-liberacion/registrar', icon: <FiPlus size={16} /> });
     } else if (isEditPage) {
       items.push({ label: 'Editar', path: location.pathname, icon: <FiPlus size={16} /> });
@@ -62,6 +65,7 @@ const LiberacionPage = () => {
 
         <Routes>
           <Route index element={<LiberacionList />} />
+          <Route path="general" element={<AdminRoute><LiberacionList mode="general" /></AdminRoute>} />
           <Route path="registrar" element={<LiberacionFormRoute />} />
           <Route path="editar/:id" element={<LiberacionFormRoute />} />
         </Routes>

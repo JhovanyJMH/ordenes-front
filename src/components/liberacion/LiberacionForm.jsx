@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import jsPDF from 'jspdf';
 import {
@@ -25,7 +25,7 @@ import {
   FiSettings,
   FiX,
 } from 'react-icons/fi';
-import liberacionService, { getDocumentoFilename } from '../../services/liberacionService';
+import liberacionService, { extractErrorMessage, getDocumentoFilename } from '../../services/liberacionService';
 import empleadosService from '../../services/empleadosService';
 import usersService from '../../services/usersService';
 import sistemasService from '../../services/sistemasService';
@@ -204,6 +204,7 @@ const userDisplayName = (user) => {
 
 const LiberacionForm = ({ mode = 'create', editId = null }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -313,6 +314,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
         ...data,
         fecha_solicitud: formatDate(data.fecha_solicitud) || initialForm.fecha_solicitud,
         fecha_liberacion: formatDate(data.fecha_liberacion) || initialForm.fecha_liberacion,
+        observaciones_finales: data.observaciones_finales ?? '',
         lider_proyecto_id: data.lider_proyecto_id || '',
         lider_proyecto: liderProyectoValue,
         sistema_id: data.sistema_id || data.sistema?.id || '',
@@ -410,7 +412,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
       await Swal.fire({
         icon: 'error',
         title: 'No se pudo guardar el paso',
-        text: error?.response?.data?.message || error.message || 'No se pudo guardar el progreso de la ficha.',
+        text: extractErrorMessage(error) || 'No se pudo guardar el progreso de la ficha.',
       });
       return false;
     } finally {
@@ -485,7 +487,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
         timer: 1400,
         showConfirmButton: false,
       });
-      navigate('/fichas-liberacion');
+      navigate(location.state?.returnTo || '/fichas-liberacion');
     }
   };
 
@@ -733,7 +735,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
                   className={inputClass}
                 />
                 <p className="mt-2 text-right text-xs text-gray-500">
-                  {formData.observaciones_finales.length}/500 caracteres
+                  {(formData.observaciones_finales || '').length}/500 caracteres
                 </p>
               </div>
             </SectionCard>
@@ -1062,7 +1064,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
-              onClick={() => (currentStep === 0 ? navigate('/fichas-liberacion') : goToStep(currentStep - 1))}
+              onClick={() => (currentStep === 0 ? navigate(location.state?.returnTo || '/fichas-liberacion') : goToStep(currentStep - 1))}
               disabled={submitting}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#BC955B]/60 px-5 py-2.5 text-sm font-semibold text-[#8A2036] transition hover:bg-[#DAC19A]/25 disabled:opacity-50 sm:w-auto"
             >

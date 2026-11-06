@@ -14,6 +14,10 @@ const controlCambioService = {
     const response = await api.get(ROUTE, { params: { page, search } });
     return response.data;
   },
+  getGeneral: async ({ page = 1, search = '' } = {}) => {
+    const response = await api.get(`${ROUTE}/general`, { params: { page, search } });
+    return response.data;
+  },
   getById: async (id) => {
     const response = await api.get(`${ROUTE}/${id}`);
     return response.data;

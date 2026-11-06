@@ -1,6 +1,7 @@
 import { Routes, Route, Link, useParams, useLocation } from 'react-router-dom';
 import ControlCambioList from '../components/controlCambio/ControlCambioList';
 import ControlCambioForm from '../components/controlCambio/ControlCambioForm';
+import AdminRoute from '../components/AdminRoute';
 import { FiChevronRight, FiGitMerge, FiPlus } from 'react-icons/fi';
 
 const ControlCambioFormRoute = () => {
@@ -12,7 +13,7 @@ const ControlCambioPage = () => {
   const location = useLocation();
 
   // Detectar página actual
-  const isListPage = location.pathname === "/control-cambios" || location.pathname === "/control-cambios/";
+  const isGeneralPage = location.pathname === "/control-cambios/general";
   const isRegisterPage = location.pathname === "/control-cambios/registrar";
   const isEditPage = location.pathname.startsWith("/control-cambios/editar");
 
@@ -22,7 +23,9 @@ const ControlCambioPage = () => {
       { label: 'Control de cambios', path: '/control-cambios', icon: <FiGitMerge size={16} /> },
     ];
 
-    if (isRegisterPage) {
+    if (isGeneralPage) {
+      items.push({ label: 'Del área', path: '/control-cambios/general', icon: <FiGitMerge size={16} /> });
+    } else if (isRegisterPage) {
       items.push({ label: 'Registrar', path: '/control-cambios/registrar', icon: <FiPlus size={16} /> });
     } else if (isEditPage) {
       items.push({ label: 'Editar', path: location.pathname, icon: <FiPlus size={16} /> });
@@ -62,6 +65,7 @@ const ControlCambioPage = () => {
 
         <Routes>
           <Route index element={<ControlCambioList />} />
+          <Route path="general" element={<AdminRoute><ControlCambioList mode="general" /></AdminRoute>} />
           <Route path="registrar" element={<ControlCambioFormRoute />} />
           <Route path="editar/:id" element={<ControlCambioFormRoute />} />
         </Routes>

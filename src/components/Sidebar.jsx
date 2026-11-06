@@ -329,14 +329,34 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
                             Fichas de liberación
                           </NavLink>
                         </li>
+                        {isAdmin && (
+                          <li>
+                            <NavLink
+                              to="/fichas-liberacion/general"
+                              className={({ isActive }) => `block rounded-lg px-3 py-1.5 text-sm transition ${isActive ? childActive : childIdle}`}
+                            >
+                              Fichas del área
+                            </NavLink>
+                          </li>
+                        )}
                         <li>
                           <NavLink
                             to="/control-cambios"
                             className={({ isActive }) => `block rounded-lg px-3 py-1.5 text-sm transition ${isActive ? childActive : childIdle}`}
                           >
-                            Control de cambios
+                            Control de cambio
                           </NavLink>
                         </li>
+                        {isAdmin && (
+                          <li>
+                            <NavLink
+                              to="/control-cambios/general"
+                              className={({ isActive }) => `block rounded-lg px-3 py-1.5 text-sm transition ${isActive ? childActive : childIdle}`}
+                            >
+                              Control de cambio del área
+                            </NavLink>
+                          </li>
+                        )}
                       </ul>
                     </React.Fragment>
                   )}
