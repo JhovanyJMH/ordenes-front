@@ -143,7 +143,7 @@ const ServiciosList = () => {
       )}
 
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-semibold text-colorPrimario">Servicios de la categoría #{categoriaId}</h2>
+        <h2 className="text-2xl font-semibold text-colorPrimario">Servicios de la categoría</h2>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -228,7 +228,7 @@ const ServiciosList = () => {
                     <td className="px-3 py-3 text-center sm:px-4">
                       <div className="flex justify-center gap-2">
                         <Link
-                          to={`editar/${srv.id}`}
+                          to={`editar/${srv.route_key}`}
                           title="Editar"
                           className="inline-flex items-center justify-center rounded-xl border border-[#BC955B]/30 bg-[#fff7f7] p-2 text-[#BC955B] transition-all duration-200 hover:bg-[#BC955B] hover:text-white hover:shadow-md hover:shadow-[#BC955B]/20"
                         >

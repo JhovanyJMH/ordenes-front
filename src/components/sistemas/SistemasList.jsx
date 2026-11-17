@@ -241,14 +241,14 @@ const SistemasList = () => {
                       <div className="flex justify-center gap-2">
                         <Link
                           title="Administrar sistemas y versiones"
-                          to={`${item.id}/sistemas`}
+                          to={`${item.route_key}/sistemas`}
                           className="inline-flex items-center justify-center rounded-xl border border-[#BC955B]/30 bg-[#fff7f7] p-2 text-[#BC955B] transition-all duration-200 hover:bg-[#BC955B] hover:text-white hover:shadow-md hover:shadow-[#BC955B]/20"
                         >
                           <FiLayers size={16} />
                         </Link>
                         <Link
                           title="Editar sistema principal"
-                          to={`editar/${item.id}`}
+                          to={`editar/${item.route_key}`}
                           className="inline-flex items-center justify-center rounded-xl border border-[#BC955B]/30 bg-[#fff7f7] p-2 text-[#BC955B] transition-all duration-200 hover:bg-[#BC955B] hover:text-white hover:shadow-md hover:shadow-[#BC955B]/20"
                         >
                           <FiEdit2 size={16} />

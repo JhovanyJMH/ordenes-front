@@ -14,6 +14,11 @@ export const fetchUsersApi = async (page = 1, search = '') => {
   return response.data;
 };
 
+export const getUserApi = async (routeKey) => {
+  const response = await api.get(`/users/${encodeURIComponent(routeKey)}`);
+  return response.data;
+};
+
 export const createUserApi = async (userData) => {
   const response = await api.post('/users', {
     ...userData,

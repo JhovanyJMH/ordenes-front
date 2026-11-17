@@ -185,7 +185,7 @@ const SolicitudList = () => {
                 </td>
                 <td className="px-3 py-3 text-center sm:px-4">
                   <div className="flex flex-wrap justify-center gap-1.5">
-                    <Link to={`editar/${sol.id}`} 
+                    <Link to={`editar/${sol.route_key}`} 
                       className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-blue-600/30 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white"
                       title="Editar ficha"
                     >
@@ -203,7 +203,7 @@ const SolicitudList = () => {
                         Turnar
                       </span>
                     </button>
-                    <button onClick={() => handleDownloadPdf(sol.id)} 
+                    <button onClick={() => handleDownloadPdf(sol.route_key)} 
                       className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#8A2036]/30 bg-[#8A2036]/10 text-[#8A2036] hover:bg-[#8A2036] hover:text-white transition-all duration-200 hover:shadow-md hover:shadow-[#8A2036]/20"
                       title="Descargar PDF"
                     >

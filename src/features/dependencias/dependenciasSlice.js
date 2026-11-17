@@ -38,11 +38,11 @@ export const updateDependencia = createAsyncThunk(
   }
 );
 
-export const getDependenciaById = createAsyncThunk(
-  'dependencias/getDependenciaById',
-  async (id, { rejectWithValue }) => {
+export const getDependenciaForEdit = createAsyncThunk(
+  'dependencias/getDependenciaForEdit',
+  async (routeKey, { rejectWithValue }) => {
     try {
-      const response = await dependenciasService.getDependenciaById(id);
+      const response = await dependenciasService.getDependenciaForEdit(routeKey);
       return response;
     } catch (err) {
       return rejectWithValue(err.response?.data?.JsonResponse?.message || 'Error al obtener dependencia');
@@ -144,16 +144,16 @@ const dependenciasSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      .addCase(getDependenciaById.pending, (state) => {
+      .addCase(getDependenciaForEdit.pending, (state) => {
         state.loading = true;
         state.error = null;
         state.selected = null;
       })
-      .addCase(getDependenciaById.fulfilled, (state, action) => {
+      .addCase(getDependenciaForEdit.fulfilled, (state, action) => {
         state.loading = false;
         state.selected = action.payload?.JsonResponse?.data?.dependencia || action.payload;
       })
-      .addCase(getDependenciaById.rejected, (state, action) => {
+      .addCase(getDependenciaForEdit.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
         state.selected = null;

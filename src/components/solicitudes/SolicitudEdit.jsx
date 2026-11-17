@@ -899,7 +899,7 @@ const SolicitudEdit = () => {
 
       <div className="mb-6">
         <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-400">
-          <span>Atender solicitud #{id}</span>
+          <span>Atender solicitud{selected?.id != null ? ` #${selected.id}` : ''}</span>
           {/* <span>{Math.round(progressPct)}% completado</span> */}
         </div>
         {/* <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">

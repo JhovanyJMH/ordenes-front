@@ -174,7 +174,7 @@ const SolicitudesTable = ({ mode = 'tabla', title, subtitle }) => {
                         <td className="px-3 py-3 text-center sm:px-4">
                           <button
                             type="button"
-                            onClick={() => handleDownloadPdf(sol.id)}
+                            onClick={() => handleDownloadPdf(sol.route_key)}
                             title="Descargar PDF"
                             className="inline-flex items-center gap-1.5 rounded-xl border border-[#8A2036]/30 bg-[#fff7f7] px-3 py-1.5 text-[11px] font-bold text-[#8A2036] transition-all duration-200 hover:bg-[#8A2036] hover:text-white hover:shadow-md hover:shadow-[#8A2036]/20"
                           >

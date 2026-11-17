@@ -130,6 +130,19 @@ export const dependenciasService = {
     }
   },
 
+  getDependenciaForEdit: async (routeKey) => {
+    try {
+      if (!routeKey) {
+        throw new Error('Clave de ruta requerida para obtener la dependencia');
+      }
+      const response = await api.get(`${ROUTES.DEPENDENCIA}/route/${encodeURIComponent(routeKey)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener dependencia por ID:', error);
+      throw error;
+    }
+  },
+
   createDependencia: async (payload) => {
     try {
       const response = await api.post(ROUTES.DEPENDENCIA, payload);

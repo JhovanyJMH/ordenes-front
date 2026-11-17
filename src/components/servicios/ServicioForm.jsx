@@ -78,7 +78,7 @@ const ServicioForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = { ...form, estatus: form.estatus === '1' ? 1 : 0, categoria_id: Number(categoriaId) };
+      const payload = { ...form, estatus: form.estatus === '1' ? 1 : 0, categoria_id: categoriaId };
       await dispatch(createServicio(payload)).unwrap();
       navigate(`/catalogo-categorias/${categoriaId}/servicios`);
     } catch (err) {

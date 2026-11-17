@@ -107,7 +107,7 @@ const DependenciasList = () => {
                 <div className="flex items-center">
                   <div className="flex items-center">
                     <Link
-                      to={`editar/${dep.id}`}
+                      to={`editar/${dep.route_key}`}
                       state={{ fromPage: currentPage }}
                       title="Editar"
                       className="text-[#bc955b] hover:text-white border-2 border-[#bc955b] hover:bg-[#bc955b] focus:ring-2 focus:outline-none focus:ring-[#bc955b] font-medium rounded-lg text-xs sm:text-sm px-2 sm:px-3 py-2 sm:py-2.5 text-center mr-1 sm:mr-2 mb-2"

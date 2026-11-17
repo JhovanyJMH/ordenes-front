@@ -75,7 +75,7 @@ const LiberacionList = ({ mode = 'mine' }) => {
 
   const handleDownloadDocumento = async (item) => {
     try {
-      const file = await liberacionService.downloadDocumento(item.id);
+      const file = await liberacionService.downloadDocumento(item.route_key);
       const url = URL.createObjectURL(file);
       const link = document.createElement('a');
       link.href = url;
@@ -186,7 +186,7 @@ const LiberacionList = ({ mode = 'mine' }) => {
                     <td className="px-3 py-3 text-center">
                       <div className="flex flex-wrap justify-center gap-2">
                         {!isGeneral && <Link
-                          to={`/fichas-liberacion/editar/${item.id}`}
+                          to={`/fichas-liberacion/editar/${item.route_key}`}
                           state={{ returnTo: isGeneral ? '/fichas-liberacion/general' : '/fichas-liberacion' }}
                           className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-blue-600/30 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white"
                           title="Editar ficha"

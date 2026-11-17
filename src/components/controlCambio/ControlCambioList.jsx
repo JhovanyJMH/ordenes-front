@@ -75,7 +75,7 @@ const ControlCambioList = ({ mode = 'mine' }) => {
 
   const handleDownloadDocumento = async (item) => {
     try {
-      const file = await controlCambioService.downloadDocumento(item.id);
+      const file = await controlCambioService.downloadDocumento(item.route_key);
       const url = URL.createObjectURL(file);
       const link = document.createElement('a');
       link.href = url;
@@ -186,7 +186,7 @@ const ControlCambioList = ({ mode = 'mine' }) => {
                     <td className="px-3 py-3 text-center">
                       <div className="flex flex-wrap justify-center gap-2">
                         {!isGeneral && <Link
-                          to={`/control-cambios/editar/${item.id}`}
+                          to={`/control-cambios/editar/${item.route_key}`}
                           state={{ returnTo: isGeneral ? '/control-cambios/general' : '/control-cambios' }}
                           className="group relative flex h-9 w-9 items-center justify-center rounded-xl border border-blue-600/30 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white"
                           title="Editar registro"

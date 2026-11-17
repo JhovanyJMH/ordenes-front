@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { getDependenciaById, updateDependencia } from '../../features/dependencias/dependenciasSlice';
+import { getDependenciaForEdit, updateDependencia } from '../../features/dependencias/dependenciasSlice';
 import SubmitButton from '../common/SubmitButton';
 import LoadingSpinner from '../common/LoadingSpinner';
 import Swal from 'sweetalert2';
@@ -25,7 +25,7 @@ const DependenciaEdit = () => {
 
   useEffect(() => {
     if (id) {
-      dispatch(getDependenciaById(id));
+      dispatch(getDependenciaForEdit(id));
     }
   }, [id, dispatch]);
 
@@ -69,7 +69,7 @@ const DependenciaEdit = () => {
       });
       
       navigate('/catalogo-dependencias', {
-        state: { updatedId: id, page: location.state?.fromPage || 1 },
+        state: { updatedId: selected?.id || id, page: location.state?.fromPage || 1 },
       });
     } catch (error) {
       console.error('Error al actualizar dependencia:', error);
@@ -86,8 +86,7 @@ const DependenciaEdit = () => {
   
   const isLoadingData =
     loading ||
-    !selected ||
-    (selected && selected.id && String(selected.id) !== String(id));
+    !selected;
 
   if (isLoadingData) {
     return <LoadingSpinner message="Cargando datos de la dependencia..." />;

@@ -215,7 +215,7 @@ const SistemasDelPrincipalList = () => {
                     <td className="px-3 py-3 text-center sm:px-4">
                       <Link
                         title="Editar sistema"
-                        to={`editar/${item.id}`}
+                        to={`editar/${item.route_key}`}
                         className="inline-flex items-center justify-center rounded-xl border border-[#BC955B]/30 bg-[#fff7f7] p-2 text-[#BC955B] transition-all duration-200 hover:bg-[#BC955B] hover:text-white hover:shadow-md hover:shadow-[#BC955B]/20"
                       >
                         <FiEdit2 size={16} />

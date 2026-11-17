@@ -83,7 +83,7 @@ const SistemaPrincipalForm = ({ mode = 'create', editId = null }) => {
     <div ref={containerRef} className="mx-auto w-full max-w-4xl">
       <div className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
-          {isEdit ? `Editar sistema principal${id ? ` #${id}` : ''}` : 'Nuevo sistema principal'}
+          {isEdit ? `Editar sistema principal${selected?.id != null ? ` #${selected.id}` : ''}` : 'Nuevo sistema principal'}
         </p>
         <h2 className="mt-1 text-2xl font-extrabold text-gray-800">Catálogo de sistemas</h2>
       </div>

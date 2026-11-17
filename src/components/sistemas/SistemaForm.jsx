@@ -434,7 +434,7 @@ const SistemaForm = ({ mode = 'create', editId = null }) => {
     <div ref={containerRef} className="mx-auto w-full max-w-6xl">
       <div className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
-          {isEdit ? `Editar sistema${id ? ` #${id}` : ''}` : 'Nuevo sistema / versión'}
+          {isEdit ? `Editar sistema${form.id != null ? ` #${form.id}` : ''}` : 'Nuevo sistema / versión'}
         </p>
         <h2 className="mt-1 text-2xl font-extrabold text-gray-800">
           {form.sistema_principal?.descripcion || 'Registro del sistema'}

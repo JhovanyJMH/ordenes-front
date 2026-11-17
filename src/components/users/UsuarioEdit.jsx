@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
-import { updateUser, clearError, clearSuccessMessage, fetchUsers } from '../../features/users/usersSlice';
+import { updateUser } from '../../features/users/usersSlice';
+import { getUserApi } from '../../features/users/usersAPI';
 import { dependenciasService } from '../../services/dependenciasService';
 import { useForm } from 'react-hook-form';
 import CustomSelect from '../common/CustomSelect';
@@ -70,9 +71,10 @@ const SectionCard = ({ icon: Icon, title, children, variant = 'primary' }) => {
 const UsuarioEdit = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { id } = useParams();
-  const { list: users, loading, error, successMessage } = useSelector((state) => state.users);
+  const { id: routeKey } = useParams();
+  const { loading, error } = useSelector((state) => state.users);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const [userToEdit, setUserToEdit] = useState(null);
   const { register, handleSubmit: handleFormSubmit, formState: { errors }, setValue, watch } = useForm({
     defaultValues: {
       name: '',
@@ -202,108 +204,96 @@ const UsuarioEdit = () => {
     loadOficinas();
   }, [selectedDireccion, selectedSecretaria]);
 
-  // Cargar usuarios si no están disponibles (solo una vez al montar)
+  // El servidor valida y descifra la clave de ruta antes de devolver el usuario.
   useEffect(() => {
-    const loadUsersIfNeeded = async () => {
-      // Si no hay usuarios en la lista y no estamos cargando, cargarlos
-      if (users.length === 0 && !loading && !isLoadingUser) {
-        setIsLoadingUser(true);
-        try {
-          await dispatch(fetchUsers({ page: 1, search: '' })).unwrap();
-        } catch (error) {
-          console.error('Error al cargar usuarios:', error);
-          Swal.fire({
-            title: 'Error',
-            text: 'No se pudieron cargar los datos del usuario',
-            icon: 'error'
-          });
-          navigate('/catalogo-usuarios');
-        } finally {
-          setIsLoadingUser(false);
-        }
-      }
-    };
+    let isCurrent = true;
+    setIsLoadingUser(true);
 
-    loadUsersIfNeeded();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Solo ejecutar una vez al montar
+    getUserApi(routeKey)
+      .then((user) => {
+        if (isCurrent) setUserToEdit(user);
+      })
+      .catch(async (requestError) => {
+        if (!isCurrent) return;
+
+        const status = requestError.response?.status;
+        await Swal.fire({
+          title: status === 403 ? 'Acceso denegado' : status === 404 ? 'Usuario no disponible' : 'Error al cargar usuario',
+          text: status === 403
+            ? 'Solo un administrador puede consultar este usuario.'
+            : status === 404
+              ? 'El enlace no es válido o el usuario ya no está disponible.'
+              : 'No se pudieron cargar los datos del usuario. Inténtalo de nuevo.',
+          icon: status === 403 ? 'error' : status === 404 ? 'warning' : 'error',
+          confirmButtonText: 'Volver a la lista'
+        });
+        if (isCurrent) navigate('/catalogo-usuarios');
+      })
+      .finally(() => {
+        if (isCurrent) setIsLoadingUser(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [routeKey, navigate]);
 
   // Cargar datos del usuario
   useEffect(() => {
-    const user = users.find(u => u.id === parseInt(id));
+    if (!userToEdit) return;
 
-    if (user) {
-      const profileVal = user.profile !== undefined && user.profile !== null ? String(user.profile) : '';
-      setForm(prev => ({
-        ...prev,
-        name: user.name,
-        ap_paterno: user.ap_paterno || '',
-        ap_materno: user.ap_materno || '',
-        email: user.email,
-        password: user.password,
-        repeatPassword: user.password,
-        profile: profileVal,
-        status: user.status,
-        dependencia_id: user.dependencia_id?.toString() || ''
-      }));
-      setValue('profile', profileVal, { shouldValidate: true });
+    const profileVal = userToEdit.profile !== undefined && userToEdit.profile !== null
+      ? String(userToEdit.profile)
+      : '';
+    setForm(prev => ({
+      ...prev,
+      name: userToEdit.name,
+      ap_paterno: userToEdit.ap_paterno || '',
+      ap_materno: userToEdit.ap_materno || '',
+      email: userToEdit.email,
+      password: '',
+      repeatPassword: '',
+      profile: profileVal,
+      status: userToEdit.status,
+      dependencia_id: userToEdit.dependencia_id?.toString() || ''
+    }));
+    setValue('profile', profileVal, { shouldValidate: true });
 
-      // Si el usuario tiene una dependencia, cargamos sus datos
-      if (user.dependencia_id) {
-        const loadDependenciaData = async () => {
-          setIsLoadingDependencias(true);
-          try {
-            // Obtener la dependencia específica por su ID
-            const response = await dependenciasService.getDependenciaById(user.dependencia_id);
-            
-            if (response?.JsonResponse?.data?.dependencia) {
-              const depData = response.JsonResponse.data.dependencia;
-              
-              // Establecer los valores iniciales
-              setSelectedSecretaria(depData.secretaria_id);
-              setSelectedDireccion(depData.direccion_id);
-              setSelectedOficina(depData.oficina_id);
+    if (!userToEdit.dependencia_id) {
+      setIsLoadingDependencias(false);
+      return;
+    }
 
-              // Cargar todas las dependencias necesarias en paralelo
-              const [secretariasData, direccionesData, oficinasData] = await Promise.all([
-                dependenciasService.getSecretarias(),
-                dependenciasService.getDirecciones(depData.secretaria_id),
-                dependenciasService.getOficinas(depData.direccion_id, depData.secretaria_id)
-              ]);
+    const loadDependenciaData = async () => {
+      setIsLoadingDependencias(true);
+      try {
+        const response = await dependenciasService.getDependenciaById(userToEdit.dependencia_id);
 
-              // Actualizar los estados con los datos obtenidos
-              setSecretarias(secretariasData || []);
-              setDirecciones(direccionesData || []);
-              setOficinas(oficinasData || []);
-            }
-          } catch (error) {
-            console.error('Error al cargar datos de dependencia:', error);
-          } finally {
-            setIsLoadingDependencias(false);
-          }
-        };
+        if (response?.JsonResponse?.data?.dependencia) {
+          const depData = response.JsonResponse.data.dependencia;
+          setSelectedSecretaria(depData.secretaria_id);
+          setSelectedDireccion(depData.direccion_id);
+          setSelectedOficina(depData.oficina_id);
 
-        loadDependenciaData();
-      } else {
-        // Si el usuario no tiene dependencia asociada, nos aseguramos de que no quede el loading activo
+          const [secretariasData, direccionesData, oficinasData] = await Promise.all([
+            dependenciasService.getSecretarias(),
+            dependenciasService.getDirecciones(depData.secretaria_id),
+            dependenciasService.getOficinas(depData.direccion_id, depData.secretaria_id)
+          ]);
+
+          setSecretarias(secretariasData || []);
+          setDirecciones(direccionesData || []);
+          setOficinas(oficinasData || []);
+        }
+      } catch (dependencyError) {
+        console.error('Error al cargar datos de dependencia:', dependencyError);
+      } finally {
         setIsLoadingDependencias(false);
       }
-    } else if (users.length > 0 && !isLoadingUser && !loading) {
-      // Si ya cargamos usuarios pero no encontramos el usuario con ese ID
-      // Solo mostrar error si realmente no está en la lista cargada
-      const userStillNotFound = !users.find(u => u.id === parseInt(id));
-      if (userStillNotFound) {
-        Swal.fire({
-          title: 'Usuario no encontrado',
-          text: 'El usuario que intentas editar no está en la primera página. Por favor, navega desde la lista de usuarios.',
-          icon: 'warning',
-          confirmButtonText: 'Volver a la lista'
-        }).then(() => {
-          navigate('/catalogo-usuarios');
-        });
-      }
-    }
-  }, [id, users, setValue, navigate, isLoadingUser, loading]);
+    };
+
+    loadDependenciaData();
+  }, [userToEdit, setValue]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -421,7 +411,7 @@ const UsuarioEdit = () => {
       userData.ap_paterno = userData.ap_paterno.toUpperCase();
       userData.ap_materno = userData.ap_materno.toUpperCase();
 
-      const result = await dispatch(updateUser({ id: parseInt(id), userData }));
+      const result = await dispatch(updateUser({ id: routeKey, userData }));
       
       if (result.meta.requestStatus === 'fulfilled') {
         Swal.fire({
@@ -817,7 +807,7 @@ const UsuarioEdit = () => {
             </button>
           </div>
         </form>
-        {(isLoadingDependencias || isLoadingUser || (users.length === 0 && loading)) && <LoadingSpinner overlay />}
+        {(isLoadingDependencias || isLoadingUser) && <LoadingSpinner overlay />}
       </div>
     </>
   );

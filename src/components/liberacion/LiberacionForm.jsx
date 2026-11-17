@@ -955,7 +955,7 @@ const LiberacionForm = ({ mode = 'create', editId = null }) => {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-400">
-            {mode === 'edit' ? `Editar ficha${editId ? ` #${editId}` : ''}` : 'Nueva ficha'}
+            {mode === 'edit' ? `Editar ficha${formData.id != null ? ` #${formData.id}` : ''}` : 'Nueva ficha'}
           </p>
           <h2 className="mt-1 text-2xl font-extrabold text-gray-800">Ficha de liberación</h2>
         </div>

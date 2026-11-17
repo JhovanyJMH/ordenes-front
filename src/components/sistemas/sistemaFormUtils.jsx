@@ -203,7 +203,7 @@ export const buildSistemaPayload = (form, sistemaPrincipalId) => {
 
   return {
     ...rest,
-    sistema_principal_id: sistemaPrincipalId || form.sistema_principal_id,
+    sistema_principal_id: form.sistema_principal_id || form.sistema_principal?.id || sistemaPrincipalId,
     anio_desarrollo: form.anio_desarrollo || null,
     es_interoperable: form.es_interoperable === '' ? null : form.es_interoperable === 'true',
   };
